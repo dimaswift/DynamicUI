@@ -8,9 +8,11 @@
         [SerializeField]
         protected AnimationOptions m_animationOptions = new AnimationOptions();
 
+        bool m_isAnimating;
         float m_animTime;
         Vector3 m_hiddenPos, m_visiblePos;
         
+        public bool isAnimating { get { return m_isAnimating; } }
 
         public AnimationOptions animationOptions
         {
@@ -24,57 +26,35 @@
             }
         }
 
-        public void SetHiddenPosition()
-        {
-            var parentSize = parentCanvas.rectTransform.sizeDelta;
-            switch (m_animationOptions.hiddenPosition)
-            {
-                case Side.Top:
-                    m_hiddenPos = new Vector2(0, parentSize.y);
-                    break;
-                case Side.Bottom:
-                    m_hiddenPos = new Vector2(0, -parentSize.y);
-                    break;
-                case Side.Left:
-                    m_hiddenPos = new Vector2(-parentSize.x, 0);
-                    break;
-                case Side.Right:
-                    m_hiddenPos = new Vector2(parentSize.x, 0);
-                    break;
-                default:
-                    break;
-            }
-        }
-        protected virtual void OnAnimate(float curveValue)
-        {
-
-        }
-
-        protected virtual void OnAnimationEnded()
-        {
-
-        }
-
-        protected virtual void OnAnimationStarted()
-        {
-
-        }
+        /// <summary>
+        /// No need to call base function.
+        /// </summary>
+        /// <param name="curveValue">The evaluated value of the curve.</param>
+        protected virtual void OnAnimate(float curveValue) { }
 
         /// <summary>
-        /// Shows element using animation
+        /// Called before anination starts. No need to call base function.
+        /// </summary>
+        protected virtual void OnAnimationEnded() { }
+
+        /// <summary>
+        /// Called after anination ends. No need to call base function.
+        /// </summary>
+        protected virtual void OnAnimationStarted()  {  }
+
+        /// <summary>
+        /// Shows element using animation.
         /// </summary>
         public void ShowWithAnimation()
         {
             if (!m_visible)
             {
-                OnShow();
-                m_visible = true;
-                StopCoroutine(Animator());
-                StartCoroutine(Animator());
+                Show();
+                StartAnimation();
             }
         }
         /// <summary>
-        /// Hides element using animation
+        /// Hides element using animation.
         /// </summary>
         public void HideWithAnimation()
         {
@@ -82,16 +62,19 @@
             {
                 OnHide();
                 m_visible = false;
-                StopCoroutine(Animator());
-                StartCoroutine(Animator());
+                StartAnimation();
             }
         }
 
+        /// <summary>
+        /// Starts the animation.
+        /// </summary>
         protected void StartAnimation()
         {
             if (m_isActive)
             {
                 m_animTime = m_animationOptions.curveStart;
+                OnAnimationStarted();
                 StopCoroutine(Animator());
                 StartCoroutine(Animator());
             }
@@ -99,7 +82,7 @@
 
         IEnumerator Animator()
         {
-            OnAnimationStarted();
+            m_isAnimating = true;
             float end = m_animationOptions.curveEnd;
             while (m_animTime <= end)
             {
@@ -108,42 +91,32 @@
                 yield return null;
             }
             OnAnimationEnded();
+            m_isAnimating = false;
             if (!m_visible && m_disableOnHide)
-                gameObject.SetActive(false);
+                SetActive(false);
         }
 
         [System.Serializable]
         public class AnimationOptions
         {
             public AnimationCurve curve = AnimationCurve.EaseInOut(0, 0, 1, 1);
-            public Side hiddenPosition;
             [Range(0f, 1f)]
             public float speed = .5f;
-            [EnumFlag]
-            public AnimationFlags flags;
 
             public AnimationOptions() { }
 
-            public AnimationOptions(AnimationCurve curve, float speed, AnimationFlags flags) 
+            public AnimationOptions(AnimationCurve curve, float speed) 
             {
                 this.speed = speed;
                 this.curve = curve;
-                this.flags = flags;
             }
 
             public const float MAX_SPEED = 10f;
             public float curveEnd { get { return curve.keys[curve.length - 1].time; } }
             public float curveStart { get { return curve.keys[0].time; } }
 
-            [System.Flags]
-            public enum AnimationFlags
-            {
-                XScale = 1,
-                YScale = 2,
-                Alpha = 4,
-                XPos = 8,
-                YPos = 16
-            }
         }
+
+
     }
 }
