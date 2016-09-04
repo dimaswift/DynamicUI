@@ -7,10 +7,21 @@
     {
         RectTransform m_rectTransform;
         bool m_initialized = false;
+        DUIAnimated[] m_animatedElements;
 
         public RectTransform rectTransform
         {
             get {  if (!m_initialized) Init(); return m_rectTransform; }
+        }
+
+        public void Init()
+        {
+            if (!m_initialized)
+            {
+                m_rectTransform = GetComponent<RectTransform>();
+                m_initialized = true;
+                m_animatedElements = GetComponentsInChildren<DUIAnimated>(true);
+            }
         }
 
         void Awake()
@@ -18,13 +29,15 @@
             Init();
         }
 
-        public void Init()
+        void Update()
         {
-            if(!m_initialized)
+            int lenght = m_animatedElements.Length;
+            var delta = Time.unscaledDeltaTime;
+            for (var i = 0; i < lenght; i++)
             {
-                m_rectTransform = GetComponent<RectTransform>();
-                m_initialized = true;
+                m_animatedElements[i].ProcessAnimation(delta);
             }
         }
+
     }
 }

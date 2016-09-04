@@ -75,25 +75,32 @@
             {
                 m_animTime = m_animationOptions.curveStart;
                 OnAnimationStarted();
-                StopCoroutine(Animator());
-                StartCoroutine(Animator());
+                m_isAnimating = true;
             }
         }
 
-        IEnumerator Animator()
+        /// <summary>
+        /// Animation thread. Put it in Update. Usually handled by DUICanvas.
+        /// </summary>
+        /// <param name="delta">Delta value.</param>
+        public void ProcessAnimation(float delta)
         {
-            m_isAnimating = true;
-            float end = m_animationOptions.curveEnd;
-            while (m_animTime <= end)
+            if(m_isAnimating)
             {
-                m_animTime += Time.unscaledDeltaTime * m_animationOptions.speed * AnimationOptions.MAX_SPEED;
-                OnAnimate(m_animationOptions.curve.Evaluate(m_animTime));
-                yield return null;
+                float end = m_animationOptions.curveEnd;
+                if (m_animTime <= end)
+                {
+                    m_animTime += delta * m_animationOptions.speed * AnimationOptions.MAX_SPEED;
+                    OnAnimate(m_animationOptions.curve.Evaluate(m_animTime));
+                }
+                else
+                {
+                    OnAnimationEnded();
+                    m_isAnimating = false;
+                    if (!m_visible && m_disableOnHide)
+                        SetActive(false);
+                }
             }
-            OnAnimationEnded();
-            m_isAnimating = false;
-            if (!m_visible && m_disableOnHide)
-                SetActive(false);
         }
 
         [System.Serializable]

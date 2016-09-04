@@ -9,14 +9,39 @@
         protected Side m_hideSide;
 
         public Side hideSide { get { return m_hideSide; } set { m_hideSide = value; } }
+        [EnumFlag]
+        [SerializeField]
+        protected HideOptions m_hideOptions;
+        protected CanvasGroup m_canvasGroup;
 
-        protected Vector2 m_hiddenPosition, m_visiblePosition;
+        public HideOptions hideOptions { get { return m_hideOptions; } set { m_hideOptions = value; } }
+
+        [System.Flags]
+        public enum HideOptions { Position = 1, Scale = 2, Alpha = 4 }
+
+        protected Vector2 m_hiddenPosition, m_visiblePosition, m_visibleScale, m_hiddenScale = Vector3.zero;
+
+        bool m_hasCanvasGroup = false;
 
         public override void Init(DUICanvas canvas)
         {
             base.Init(canvas);
             m_hiddenPosition = GetHiddenPos();
             m_visiblePosition = GetVisiblePos();
+            m_visibleScale = rectTransform.localScale;
+            
+            if (HasOption(HideOptions.Alpha))
+            {
+                m_canvasGroup = GetComponent<CanvasGroup>();
+                if (m_canvasGroup == null)
+                    m_canvasGroup = gameObject.AddComponent<CanvasGroup>();
+                m_hasCanvasGroup = true;
+            }
+        }
+
+        protected bool HasOption(HideOptions opt)
+        {
+            return (m_hideOptions & opt) == opt;
         }
 
         protected Vector2 GetHiddenPos()
@@ -47,22 +72,51 @@
 
         protected override void OnAnimate(float curveValue)
         {
-            Vector2 pos;
-            if(m_visible)
+            if (HasOption(HideOptions.Position))
             {
-                pos = Vector3.Lerp(m_hiddenPosition, m_visiblePosition, curveValue);
+                MoveToPosition(curveValue);
             }
-            else
+            if(HasOption(HideOptions.Alpha))
             {
-                pos = Vector3.Lerp(m_visiblePosition, m_hiddenPosition, curveValue);
+                SetAlpha(curveValue);
             }
-            rectTransform.anchoredPosition = pos;
+            if(HasOption(HideOptions.Scale))
+            {
+                ScaleToSize(curveValue);
+            }
+        }
+
+        void ScaleToSize(float curveValue)
+        {
+            var targetScale = m_visible ? m_visibleScale : m_hiddenScale;
+            var originalScale = m_visible ? m_hiddenScale : m_visibleScale;
+            rectTransform.localScale = Vector3.Lerp(originalScale, targetScale, curveValue);
+        }
+
+        void SetAlpha(float curveValue)
+        {
+            if(!m_hasCanvasGroup)
+            {
+                m_hasCanvasGroup = true;
+                m_canvasGroup = gameObject.AddComponent<CanvasGroup>();
+            }
+            m_canvasGroup.alpha = m_visible ? curveValue : 1f - curveValue;
+        }
+
+        void MoveToPosition(float curveValue)
+        {
+            var targetPos = m_visible ? m_visiblePosition : m_hiddenPosition;
+            var originalPos = m_visible ? m_hiddenPosition : m_visiblePosition;
+            rectTransform.anchoredPosition = Vector3.Lerp(originalPos, targetPos, curveValue);
         }
 
         protected override void OnAnimationStarted()
         {
-            m_hiddenPosition = GetHiddenPos();
-            m_visiblePosition = GetVisiblePos();
+            if(HasOption(HideOptions.Position))
+            {
+                m_hiddenPosition = GetHiddenPos();
+                m_visiblePosition = GetVisiblePos();
+            }
         }
 
     }
