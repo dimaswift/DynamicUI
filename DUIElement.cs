@@ -72,6 +72,14 @@
             } 
         }
 
+        public virtual void Init()
+        {
+            if (!m_initialized)
+            {
+                Init(GetComponentInParent<DUICanvas>());
+            }
+        }
+
         /// <summary>
         /// Shows element.
         /// </summary>

@@ -1,0 +1,3 @@
+[submodule "CodeGenerator"]
+	path = CodeGenerator
+	url = https://github.com/dimaswift/CodeGenerator.git

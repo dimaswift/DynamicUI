@@ -3,7 +3,7 @@
     using UnityEngine;
     using UnityEngine.UI;
 
-    public class DUIAnimatedPanel : DUIAnimated
+    public class DUIPanel : DUIAnimated
     {
         [SerializeField]
         protected Side m_hideSide;
@@ -116,6 +116,10 @@
             {
                 m_hiddenPosition = GetHiddenPos();
                 m_visiblePosition = GetVisiblePos();
+            }
+            if(HasOption(HideOptions.Alpha))
+            {
+                m_canvasGroup.alpha = m_visible ? 0 : 1;
             }
         }
 
