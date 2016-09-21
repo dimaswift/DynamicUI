@@ -9,8 +9,10 @@ namespace DynamicUI
         public bool pendingScriptCompile;
         public string newTypeName;
         public int panelID;
-        public string elementsClass;
+        public string elementsClassString;
         public List<ComponentCell> cells = new List<ComponentCell>();
-
+        public Class mainClass;
+        public OperationType operationType;
+        public enum OperationType { Create, Update }
     }
 }

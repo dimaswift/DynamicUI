@@ -15,7 +15,7 @@ namespace DynamicUI
         [SerializeField]
         bool m_isOn = false;
         [SerializeField]
-        Sprite m_onSprite, m_offSprite;
+        Sprite m_onSprite = null, m_offSprite = null;
         Image m_toggleGraphic;
         bool m_scalingDown, m_pendingValue;
 
