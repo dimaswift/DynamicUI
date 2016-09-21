@@ -12,7 +12,7 @@ namespace DynamicUI
     {
         public DUIPanel panel { get { return (DUIPanel) target; } }
         readonly string[] IGNORED_UI_ELEMENTS = new string[] { "CanvasRenderer", "Toggle" };
-        Class mainClass, elementsSubClass;
+        Class mainClass, elementsClass;
 
         public override void OnInspectorGUI()
         {
@@ -27,13 +27,19 @@ namespace DynamicUI
             }
         }
 
+        public static string GetTypeName(System.Type t)
+        {
+            var n = t.ToString().Split('.');
+            return n[n.Length - 1];
+        }
+
         void GenerateCode()
         {
 
             string[] regions = new string[] { "Elements" };
             string[] inherited = new string[] { "DUIPanel"};
             string scriptFilePath = Application.dataPath + "/Scripts/" + panel.name + ".cs";
-            bool scriptExists = System.IO.File.Exists(scriptFilePath);
+            bool scriptExists = File.Exists(scriptFilePath);
             if (scriptExists)
             {
                 if(!EditorUtility.DisplayDialog("Warning!", "Script " + panel.name + ".cs" + " already exists. Overwrite it?", "Yes", "Cancel"))
@@ -47,14 +53,18 @@ namespace DynamicUI
 
             mainClass = new Class(panel.name, "public");
          
-            elementsSubClass = new Class("Elements", "public", "sealed");
+            elementsClass = new Class("Elements", "public", "sealed");
             List<Component> tmpList = new List<Component>();
             List<Component> elements = new List<Component>();
+            var container = ComponentCellContainer.Instance;
+
             foreach (var child in panel.GetComponentsInChildren<Transform>(true))
             {
                 if (child == panel.transform) continue;
                 tmpList.Clear();
-                tmpList.AddRange(child.GetComponents<Component>());
+                var components = child.GetComponents<Component>();
+                tmpList.AddRange(components);
+
                 if(tmpList.Count > 1)
                 {
                     tmpList.RemoveAll(ar => ar.GetType() == typeof(CanvasRenderer));
@@ -62,7 +72,6 @@ namespace DynamicUI
                         elements.Add(tmpList[0]);
                     else
                     {
-                        tmpList.RemoveAll(ar => ar.GetType() == typeof(RectTransform));
                         elements.AddRange(tmpList);
                     }
                 }
@@ -72,42 +81,129 @@ namespace DynamicUI
                 }
             }
 
-            elementsSubClass.parentRegion = "Elements";
-            mainClass.AddMember(elementsSubClass);
+            elementsClass.parentRegion = "Elements";
+            elementsClass.AddAttribute("System.Serializable");
+            mainClass.AddMember(elementsClass);
+            mainClass.AddMember(new Field("Elements", "m_elements").AddAttribute("SerializeField"));
+            mainClass.AddMember(new Property("Elements", "elements", "public", "m_elements", "", "").SetReadonly(true));
             mainClass.AddInherited("DUIPanel");
             mainClass.AddDirective("UnityEngine", "DynamicUI", "UnityEngine.UI");
+            mainClass.AddRegion("Initilization");
             mainClass.AddRegion("Elements");
-         
+            mainClass.AddMember(new Method("void", "Init", "override", "public", "Initilization").AddLine("base.Init()"));
+
+
             ElementsConfirmationWindow.Open(SubmitComponents, elements);
         }
 
-        public void SubmitComponents(List<Component> components)
+        [UnityEditor.Callbacks.DidReloadScripts]
+        private static void OnScriptsReloaded()
+        {
+            var container = ComponentCellContainer.Instance;
+            if (container.pendingScriptCompile)
+            {
+                container.pendingScriptCompile = false;
+                EditorUtility.SetDirty(container);
+                DUIPanel panel = EditorUtility.InstanceIDToObject(container.panelID) as DUIPanel;
+                var newPannel = panel.gameObject.AddComponent(Helper.GetType(container.newTypeName));
+
+                BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
+                DestroyImmediate(panel);
+            }
+        }
+
+        public static void BindElements(SerializedProperty obj)
+        {
+            var container = ComponentCellContainer.Instance;
+            var fields = container.cells;
+
+
+            foreach (var f in fields)
+            {
+                var p = obj.FindPropertyRelative("m_" + f.fieldName);
+                if(p != null)
+                    p.objectReferenceValue = f.component;
+            }
+            obj.serializedObject.ApplyModifiedProperties();
+        }
+
+        public void SubmitComponents(List<ComponentCell> components)
         {
             foreach (var c in components)
             {
-                var member = CreateMember(c);
-                mainClass.AddMember(member);
+                var f = CreateField(c);
+                elementsClass.AddMember(f);
+            }
+            foreach (var c in components)
+            {
+                var p = CreateProperty(c);
+                elementsClass.AddMember(p);
             }
             string scriptFilePath = Application.dataPath + "/Scripts/" + panel.name + ".cs";
             File.WriteAllText(scriptFilePath, mainClass.ToString());
+            var container = ComponentCellContainer.Instance;
+            container.pendingScriptCompile = true;
+            container.newTypeName = mainClass.name;
+            container.panelID = panel.GetInstanceID();
+            container.elementsClass = elementsClass.ToString();
+
+            EditorUtility.SetDirty(ComponentCellContainer.Instance);
+            Undo.RecordObject(panel.gameObject, "Panel");
+
+            EditorUtility.SetDirty(target);  
+            AssetDatabase.ImportAsset(Helper.ConvertLoRelativePath(scriptFilePath));
         }
 
-        Member CreateMember(Component component)
+        Field CreateField(ComponentCell cell)
         {
-            Member member = null;
-            return member;
+            var field = new Field();
+            field.type = GetTypeName(cell.component.GetType());
+            field.name = "m_" + cell.fieldName;
+            field.AddAttribute("SerializeField");
+            return field;
+        }
+
+        Property CreateProperty(ComponentCell cell)
+        {
+            var prop = new Property();
+            prop.protectionLevel = "public";
+            prop.readOnly = true;
+            prop.type = GetTypeName(cell.component.GetType());
+            prop.name = cell.fieldName;
+            prop.fieldName = "m_" + cell.fieldName;
+            return prop;
+        }
+    }
+
+    [System.Serializable]
+    public class ComponentCell
+    {
+        public Component component { get { return EditorUtility.InstanceIDToObject(componentID) as Component; } }
+        public int componentID;
+        public bool selected;
+        public string objectName;
+        public string fieldName;
+        public string type;
+        public ComponentCell(Component c)
+        {
+        
+            componentID = c.GetInstanceID();
+            var t = c.GetType().ToString().Split('.');
+            type = t[t.Length - 1];
+            objectName = component.name;
+            selected = true;
+            fieldName = System.Text.RegularExpressions.Regex.Replace(component.name, @"[\s*\(\)-]", ""); ;
         }
     }
 
     public class ElementsConfirmationWindow : EditorWindow
     {
         Vector2 scrollPos;
-        System.Action<List<Component>> onSubmit;
-        List<ComponentCell> cells;
+        System.Action<List<ComponentCell>> onSubmit;
         float cellSize = 30;
         GUIStyle typeLabel;
 
-        public static void Open(System.Action<List<Component>> onSubmit, List<Component> components)
+        public static void Open(System.Action<List<ComponentCell>> onSubmit, List<Component> components)
         {
             var w = GetWindow<ElementsConfirmationWindow>(true, "Select Elements you want", true);
             w.Show(true);
@@ -115,13 +211,19 @@ namespace DynamicUI
             w.maxSize = new Vector2(400, 600);
             HandyEditor.CenterOnMainWin(w);
             w.onSubmit = onSubmit;
-            w.cells = new List<ComponentCell>(components.Count);
+            ComponentCellContainer.Instance.cells.Clear();
             foreach (var c in components)
             {
-                w.cells.Add(new ComponentCell(c));
+                ComponentCellContainer.Instance.cells.Add(new ComponentCell(c));
             }
+            EditorUtility.SetDirty(ComponentCellContainer.Instance);
+            Undo.undoRedoPerformed += w.OnUndo;
         }
-      
+        
+        void OnDisable()
+        {
+            Undo.undoRedoPerformed -= OnUndo;
+        }
 
         void OnEnable()
         {
@@ -130,6 +232,8 @@ namespace DynamicUI
 
         void OnGUI ()
         {
+            Undo.RecordObject(ComponentCellContainer.Instance, "Components Container");
+            var cells = ComponentCellContainer.Instance.cells;
             var rect = new Rect(5, 5, position.width - 10, position.height - 50);
             GUI.Box(rect, "Found " + cells.Count + " elements:", EditorStyles.boldLabel);
             var scrollView = new Rect(rect.x, 20, position.width - 25, (cellSize * cells.Count) + 45);
@@ -149,17 +253,51 @@ namespace DynamicUI
             {
                 Submit();
             }
+
+            if (GUI.Button(new Rect(rect.x, position.height - 55, rect.width, 20), "Remove Duplicates"))
+            {
+                RemoveDuplicates();
+            }
+            EditorUtility.SetDirty(ComponentCellContainer.Instance);
+        }
+
+        void RemoveDuplicates()
+        {
+            Undo.RecordObject(ComponentCellContainer.Instance, "Components Container");
+            var cells = ComponentCellContainer.Instance.cells;
+            foreach (var  cell in cells)
+            {
+                foreach (var cell2 in cells)
+                {
+                    if(cell2.selected && cell.selected && cell.fieldName == cell2.fieldName &&
+                        cell.component != cell2.component)
+                    {
+                        if (cell.type == "Image" && cell2.type == "Button")
+                            cell.selected = false;
+                        else if (cell2.type == "Image" && cell.type == "Button")
+                            cell2.selected = false;
+                        else if(cell.type == "RectTransform" && cell2.type == "Image")
+                            cell2.selected = false;
+                        else if (cell.type == "RectTransform" && cell2.type == "Text")
+                            cell.selected = false;
+                        else if (cell.type == "RectTransform" && cell2.type == "Button")
+                            cell.selected = false;
+                    }
+                }
+            }
+            EditorUtility.SetDirty(ComponentCellContainer.Instance);
+        }
+
+        void OnUndo()
+        {
+            Repaint();
         }
       
         void Submit()
         {
-            List<Component> components = new List<Component>(cells.Count);
-            foreach (var c in cells)
-            {
-                if (c.selected)
-                    components.Add(c.component);
-            }
-            onSubmit(components);
+            ComponentCellContainer.Instance.cells.RemoveAll(c => c.selected == false);
+            onSubmit(ComponentCellContainer.Instance.cells);
+            Close();
         }
 
         bool DrawComponent(ComponentCell c, ref Rect rect)
@@ -169,27 +307,12 @@ namespace DynamicUI
             GUI.color = c.selected ? Color.green.SetAlpha(.3f) : Color.red.SetAlpha(.3f);
             GUI.Box(new Rect(rect.x, rect.y, rect.width, cellSize - 3), "");
             GUI.color = color;
-            GUI.Label(new Rect(rect.x, rect.y, 300, 16), c.component.name, EditorStyles.boldLabel);
+            c.fieldName = GUI.TextField(new Rect(rect.x, rect.y, 300, 16), c.fieldName, EditorStyles.boldLabel);
             GUI.Label(new Rect(rect.width - 35, rect.y, 5, 16), c.type, typeLabel);
             c.selected = GUI.Toggle(new Rect(rect.width - 20, rect.y, 20, 20), c.selected, "");
             rect.y += cellSize - 15;
             return c.selected;
         }
-
-        class ComponentCell
-        {
-            public Component component;
-            public bool selected;
-            public string type;
-            public ComponentCell (Component c)
-            {
-                component = c;
-                var t = c.GetType().ToString().Split('.');
-                type = t[t.Length - 1];
-                selected = true;
-            }
-        }
-
     }
 
 }

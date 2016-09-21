@@ -7,6 +7,8 @@
     {
         [SerializeField]
         protected Side m_hideSide;
+        [SerializeField]
+        protected bool m_resetPositionOnLoad = true;
 
         public Side hideSide { get { return m_hideSide; } set { m_hideSide = value; } }
         [EnumFlag]
@@ -27,9 +29,9 @@
         {
             base.Init(canvas);
             m_hiddenPosition = GetHiddenPos();
-            m_visiblePosition = GetVisiblePos();
+            m_visiblePosition = m_resetPositionOnLoad ? Vector2.zero : GetVisiblePos();
             m_visibleScale = rectTransform.localScale;
-            
+
             if (HasOption(HideOptions.Alpha))
             {
                 m_canvasGroup = GetComponent<CanvasGroup>();

@@ -54,7 +54,7 @@
         void Awake()
         {
             if (m_initializeOnAwake)
-                Init(FindObjectOfType<DUICanvas>());
+                Init();
         }
 
         /// <summary>
