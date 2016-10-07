@@ -11,8 +11,15 @@ namespace DynamicUI
         [SerializeField]
         bool m_useAnimation = false;
         [SerializeField]
+        bool m_toggleOnClick = false;
+        [SerializeField]
         Toggle.ToggleEvent m_onToggleChange;
         [SerializeField]
+        UnityEvent m_onClick;
+        [SerializeField]
+        Color m_onColor = Color.white;
+        [SerializeField]
+        Color m_offColor = Color.white;
         bool m_isOn = false;
         [SerializeField]
         Sprite m_onSprite = null, m_offSprite = null;
@@ -44,6 +51,8 @@ namespace DynamicUI
 
         public Toggle.ToggleEvent onToggleChange { get { return m_onToggleChange; } }
 
+        public UnityEvent onClick { get { return m_onClick; } }
+
         public override void Init(DUICanvas canvas)
         {
             base.Init(canvas);
@@ -53,7 +62,9 @@ namespace DynamicUI
 
         public void OnPointerDown(PointerEventData eventData)
         {
-            Toggle();
+            onClick.Invoke();
+            if(m_toggleOnClick)
+                Toggle();
         }
 
         public void Toggle()
@@ -70,6 +81,7 @@ namespace DynamicUI
         void SetSprite()
         {
             m_toggleGraphic.sprite = m_isOn ? m_onSprite : m_offSprite;
+            m_toggleGraphic.color = m_isOn ? m_onColor : m_offColor;
         }
 
         protected override void OnAnimate(float curveValue)
@@ -92,7 +104,5 @@ namespace DynamicUI
                 rectTransform.localScale = s;
             }
         }
-
     }
-
 }

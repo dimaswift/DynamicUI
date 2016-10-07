@@ -14,7 +14,7 @@
             get {  if (!m_initialized) Init(); return m_rectTransform; }
         }
 
-        public void Init()
+        public virtual void Init()
         {
             if (!m_initialized)
             {
