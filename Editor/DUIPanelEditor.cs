@@ -118,7 +118,7 @@ namespace DynamicUI
                 {
                     if(c is CanvasRenderer == false)
                     {
-                        if (existingElements.FindIndex(e => e.GetInstanceID() == c.GetInstanceID()) < 0)
+                        if (existingElements.FindIndex(e => e && e.GetInstanceID() == c.GetInstanceID()) < 0)
                         {
                             tmpList.Add(c);
                         }
