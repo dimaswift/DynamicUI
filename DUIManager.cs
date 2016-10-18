@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
+using DynamicUI;
 
-public class DUIManager : MonoBehaviour
+public class DUIManager : DUICanvas
 {
     #region Screens
 
@@ -9,7 +10,7 @@ public class DUIManager : MonoBehaviour
 
     #endregion
 
-    public virtual void Init()
+    public override void Init()
     {
 
     }
