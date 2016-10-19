@@ -58,7 +58,7 @@ namespace DynamicUI
             ComponentCellContainer.Instance.operationType = ComponentCellContainer.OperationType.Create;
             EditorUtility.SetDirty(ComponentCellContainer.Instance);  
             var g = item.context as RectTransform;
-            GenerateCode(g.gameObject, new Class(g.name, "public").AddMember(new Class("Elements", "public")), FilterComponents(g.gameObject));
+            GenerateCode(g.gameObject, CreatePanelClass(g.gameObject), FilterComponents(g.gameObject));
         }
 
         public static string GetTypeName(System.Type t)
@@ -351,7 +351,7 @@ namespace DynamicUI
         {
             Undo.RecordObject(ComponentCellContainer.Instance, "Components Container");
             var cells = ComponentCellContainer.Instance.cells;
-            float scrollViewSize = position.height - 100;
+            float scrollViewSize = position.height - 120;
             var rect = new Rect(5, 5, position.width - 10, scrollViewSize);
             GUI.Box(rect, "Found " + cells.Count + " elements:", EditorStyles.boldLabel);
             var scrollView = new Rect(rect.x, 20, position.width - 25, (cellSize * cells.Count) + 45);
@@ -368,13 +368,19 @@ namespace DynamicUI
             GUI.EndScrollView();
 
           
-            if (GUI.Button(new Rect(rect.x, position.height - 85, rect.width, 20), "Add Type To Names"))
+            if (GUI.Button(new Rect(rect.x, position.height - 100, rect.width, 20), "Add Type To Names"))
             {
                 AddTypeToNames();
             }
-            if (GUI.Button(new Rect(rect.x, position.height - 55, rect.width, 20), "Remove Duplicates"))
+            if (GUI.Button(new Rect(rect.x, position.height - 75, rect.width, 20), "Remove Duplicates"))
             {
                 RemoveDuplicates();
+            }
+            if (GUI.Button(new Rect(rect.x, position.height - 50, rect.width, 20), "Remove All"))
+            {
+                Undo.RecordObject(ComponentCellContainer.Instance, "Components Container");
+                cells.ForEach(c => c.selected = false);
+                EditorUtility.SetDirty(ComponentCellContainer.Instance);
             }
             if (GUI.Button(new Rect(rect.x, position.height - 25, rect.width, 20), "Submit"))
             {

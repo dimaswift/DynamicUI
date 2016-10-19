@@ -29,7 +29,9 @@
         {
             base.Init(canvas);
             m_hiddenPosition = GetHiddenPos();
-            m_visiblePosition = m_resetPositionOnLoad ? Vector2.zero : GetVisiblePos();
+            m_visiblePosition = m_resetPositionOnLoad ? Vector2.zero : rectTransform.anchoredPosition;
+            if (m_resetPositionOnLoad)
+                Invoke("ResetPos", .5f);
             m_visibleScale = rectTransform.localScale;
 
             if (HasOption(HideOptions.Alpha))
@@ -39,6 +41,11 @@
                     m_canvasGroup = gameObject.AddComponent<CanvasGroup>();
                 m_hasCanvasGroup = true;
             }
+        }
+
+        void ResetPos ()
+        {
+            rectTransform.anchoredPosition = Vector2.zero;
         }
 
         protected bool HasOption(HideOptions opt)
@@ -60,7 +67,7 @@
                 case Side.Left:
                     return new Vector2(-parentSize.x, 0);
                 case Side.Right:
-                    return new Vector2(parentSize.x, 0);
+                    return new Vector2((parentSize.x * .5f) + (rectTransform.sizeDelta.x * .5f), 0);
             }
             return Vector2.zero;
         }
@@ -116,8 +123,8 @@
         {
             if(HasOption(HideOptions.Position))
             {
-                m_hiddenPosition = GetHiddenPos();
-                m_visiblePosition = GetVisiblePos();
+                //m_hiddenPosition = GetHiddenPos();
+                //m_visiblePosition = GetVisiblePos();
             }
             if(HasOption(HideOptions.Alpha))
             {
