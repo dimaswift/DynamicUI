@@ -118,7 +118,7 @@ namespace DynamicUI
                 {
                     if(c is CanvasRenderer == false)
                     {
-                        if (existingElements.FindIndex(e => e.GetInstanceID() == c.GetInstanceID()) < 0)
+                        if (existingElements.FindIndex(e => e && e.GetInstanceID() == c.GetInstanceID()) < 0)
                         {
                             tmpList.Add(c);
                         }
@@ -186,7 +186,9 @@ namespace DynamicUI
             .AddDirective("UnityEngine", "DynamicUI", "UnityEngine.UI")
             .AddRegion("Initilization")
             .AddRegion("Elements")
-            .AddMember(new Method("void", "Init", "override", "public", "Initilization").AddLine("base.Init()"))
+            .AddMember(new Method("void", "Init", "override", "public", "Initilization")
+                .AddLine("base.Init(canvas)")
+                .AddParameters(new Method.Parameter("DUICanvas", "canvas")))
             .AddMember(elementsClass);
 
             return mainClass;
