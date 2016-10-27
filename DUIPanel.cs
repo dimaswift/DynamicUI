@@ -14,6 +14,8 @@
         [EnumFlag]
         [SerializeField]
         protected HideOptions m_hideOptions;
+        [SerializeField]
+        protected bool m_stretchToScreenSize = true;
         protected CanvasGroup m_canvasGroup;
 
         public HideOptions hideOptions { get { return m_hideOptions; } set { m_hideOptions = value; } }
@@ -45,6 +47,8 @@
 
         void ResetPos ()
         {
+            if (m_stretchToScreenSize)
+                rectTransform.sizeDelta = parentCanvas.rectTransform.sizeDelta;
             rectTransform.anchoredPosition = Vector2.zero;
         }
 

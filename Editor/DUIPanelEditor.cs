@@ -7,9 +7,11 @@ using HandyUtilities;
 
 namespace DynamicUI
 {
+
     [CustomEditor(typeof(DUIPanel), true)]
     public class DUIPanelEditor : Editor
     {
+        static string uiScreensScriptsPath { get { return scriptsFolder + "UIScreens.cs"; } }
         static string scriptsFolder { get { return Application.dataPath + "/Scripts/"; } }
         public DUIPanel panel { get { return (DUIPanel) target; } }
 
@@ -19,10 +21,13 @@ namespace DynamicUI
             if(GUILayout.Button("Update Elements Bindings"))
             {
                 UpdateElementsBindings(panel);
-
             }
         }
-
+        void OnEnable()
+        {
+            if (!File.Exists(uiScreensScriptsPath))
+                SaveUIScreenScript(CreateUIScreensClass().ToString());
+        }
         void Test()
         {
             string scriptFilePath = Application.dataPath + "/Scripts/" + panel.name + ".cs";
@@ -65,6 +70,65 @@ namespace DynamicUI
         {
             var n = t.ToString().Split('.');
             return n[n.Length - 1];
+        }
+
+        [MenuItem("CONTEXT/DUIPanel/Add Screen To Manager")]
+        public static void AddScreen(MenuCommand command)
+        {
+            var panel = command.context as DUIPanel;
+            AddScreen(panel);
+        }
+
+        public static Class CreateUIScreensClass()
+        {
+            var cls = new Class("UIScreens", "public", "sealed");
+            cls.AddAttribute("System.Serializable");
+            cls.AddDirective("UnityEngine", "DynamicUI");
+            cls.AddMember(new Method("void", "Init", "", "public", "", new Method.Parameter("DUICanvas", "canvas")));
+            cls.AddMember(new Method("void", "HideAll", "", "public", ""));
+            return cls;
+        }
+
+        public static void AddScreen<T>(T screen) where T : DUIPanel
+        {
+            if (!File.Exists(uiScreensScriptsPath))
+                SaveUIScreenScript(CreateUIScreensClass().ToString());
+            var parser = new ClassParser().Parse(File.ReadAllText(uiScreensScriptsPath));
+            if(parser.members.Find(m => m.type == screen.name) != null)
+            {
+                Debug.LogWarning(string.Format("UI Screen {0} already added!", screen.name)); 
+                return;
+            }
+            var type = screen.GetType().ToString().Split('.').LastItem();
+            var lowerCaseName = type[0].ToString().ToLower() + type.Substring(1);
+            parser.InsertMember(new Field(type, "m_" + lowerCaseName).AddAttributes("SerializeField"));
+            parser.InsertMember(new Property(type, lowerCaseName, "public", "m_" + lowerCaseName, "").SetReadonly(true).SetOneLine(true));
+            var initMethod = parser.members.Find(m => m.name == "Init") as Method;
+            var hideMethod = parser.members.Find(m => m.name == "HideAll") as Method;
+            initMethod.AddLine("m_" + lowerCaseName + ".Init(canvas);");
+            hideMethod.AddLine("m_" + lowerCaseName + ".Hide();");
+            SaveUIScreenScript(parser.ToString());
+            var binding = new ComponentCellContainer.ScreenBinding();
+
+            binding.panelID = screen.gameObject.GetInstanceID();
+            binding.fieldName = "m_" + lowerCaseName;
+            binding.screenName = type;
+            EditorUtility.SetDirty(ComponentCellContainer.Instance);  
+        }
+
+        public static void SaveUIScreenScript(string body)
+        {
+            var ft = File.CreateText(uiScreensScriptsPath);
+
+            var comment = @"///
+///     AUTO GENERATED FILE
+///     DO NOT MODIFY
+///
+";
+            var str = comment + body;
+            ft.Write(str);
+            ft.Close();
+            AssetDatabase.ImportAsset(Helper.ConvertLoRelativePath(uiScreensScriptsPath));
         }
 
         public static void GenerateCode(GameObject panel, Class mainClass, List<Component> components)
@@ -197,12 +261,15 @@ namespace DynamicUI
         [UnityEditor.Callbacks.DidReloadScripts]
         private static void OnScriptsReloaded()
         {
+            if (!File.Exists(uiScreensScriptsPath))
+                SaveUIScreenScript(CreateUIScreensClass().ToString());
             var container = ComponentCellContainer.Instance;
+            GameObject panel = EditorUtility.InstanceIDToObject(container.panelID) as GameObject;
             if (container.pendingScriptCompile)
             {
                 container.pendingScriptCompile = false;
-                EditorUtility.SetDirty(container);
-                GameObject panel = EditorUtility.InstanceIDToObject(container.panelID) as GameObject;
+           
+             
                 if (container.operationType == ComponentCellContainer.OperationType.Create)
                 {
                     var newPannel = panel.AddComponent(Helper.GetType(container.newTypeName));
@@ -214,6 +281,16 @@ namespace DynamicUI
                     BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
                 }
             }
+            foreach (var binding in container.screenBindings)
+            {
+                panel = EditorUtility.InstanceIDToObject(binding.panelID) as GameObject;
+                var canvas = panel.GetComponentInParent<UIManager>();
+                var screenContainer = new SerializedObject(canvas).FindProperty("m_screens");
+                screenContainer.FindPropertyRelative(binding.fieldName).objectReferenceValue = panel.GetComponent(binding.screenName);
+                screenContainer.serializedObject.ApplyModifiedProperties();
+            }
+            container.screenBindings.Clear();
+            EditorUtility.SetDirty(container);
         }
 
         public static void BindElements(SerializedProperty obj)
@@ -451,7 +528,7 @@ namespace DynamicUI
             GUI.Box(new Rect(rect.x + depth, rect.y, rect.width, cellSize - 3), "");
             GUI.color = color;
 
-            c.fieldName = GUI.TextField(new Rect(rect.x + depth + 5, rect.y + 8, 200, 16), c.fieldName, EditorStyles.largeLabel);
+            c.fieldName = GUI.TextField(new Rect(rect.x + depth + 5, rect.y + 8, 200, 22), c.fieldName, EditorStyles.largeLabel);
           //  GUI.Label(new Rect(rect.x + depth, rect.y + 18, 300, 16), c.component.name, EditorStyles.miniLabel);
             GUI.Label(new Rect(rect.width - 35, rect.y + 8, 5, 16), string.Format("{0} ({1})", c.component.name, c.type), typeLabel);
             GUI.enabled = true;
