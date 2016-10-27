@@ -24,11 +24,6 @@
             }
         }
 
-        void Awake()
-        {
-            Init();
-        }
-
         void Update()
         {
             int lenght = m_animatedElements.Length;

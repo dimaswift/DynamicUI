@@ -18,11 +18,12 @@ namespace DynamicUI
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
-            if(GUILayout.Button("Update Elements Bindings"))
+            if (GUILayout.Button("Update Elements Bindings"))
             {
                 UpdateElementsBindings(panel);
             }
         }
+
         void OnEnable()
         {
             if (!File.Exists(uiScreensScriptsPath))
@@ -44,7 +45,7 @@ namespace DynamicUI
             ComponentCellContainer.Instance.operationType = ComponentCellContainer.OperationType.Update;
             EditorUtility.SetDirty(ComponentCellContainer.Instance);
             string scriptFilePath = Application.dataPath + "/Scripts/" + panel.name + ".cs";
-            if(File.Exists(scriptFilePath))
+            if (File.Exists(scriptFilePath))
             {
                 var classString = File.ReadAllText(scriptFilePath);
                 var mainClass = new ClassParser().Parse(classString);
@@ -53,7 +54,7 @@ namespace DynamicUI
             }
             else
             {
-                Debug.LogError(string.Format("Script at path not found: {0}", scriptFilePath)); 
+                Debug.LogError(string.Format("Script at path not found: {0}", scriptFilePath));
             }
         }
 
@@ -61,7 +62,7 @@ namespace DynamicUI
         static void CreatePanelScript(MenuCommand item)
         {
             ComponentCellContainer.Instance.operationType = ComponentCellContainer.OperationType.Create;
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);  
+            EditorUtility.SetDirty(ComponentCellContainer.Instance);
             var g = item.context as RectTransform;
             GenerateCode(g.gameObject, CreatePanelClass(g.gameObject), FilterComponents(g.gameObject));
         }
@@ -94,15 +95,15 @@ namespace DynamicUI
             if (!File.Exists(uiScreensScriptsPath))
                 SaveUIScreenScript(CreateUIScreensClass().ToString());
             var parser = new ClassParser().Parse(File.ReadAllText(uiScreensScriptsPath));
-            if(parser.members.Find(m => m.type == screen.name) != null)
+            if (parser.members.Find(m => m.type == screen.name) != null)
             {
-                Debug.LogWarning(string.Format("UI Screen {0} already added!", screen.name)); 
+                Debug.LogWarning(string.Format("UI Screen {0} already added!", screen.name));
                 return;
             }
             var type = screen.GetType().ToString().Split('.').LastItem();
             var lowerCaseName = type[0].ToString().ToLower() + type.Substring(1);
             parser.InsertMember(new Field(type, "m_" + lowerCaseName).AddAttributes("SerializeField"));
-            parser.InsertMember(new Property(type, lowerCaseName, "public", "m_" + lowerCaseName, "").SetReadonly(true).SetOneLine(true));
+            parser.InsertMember(new Property(type, lowerCaseName, "public", "m_" + lowerCaseName, "").SetReadonly(true));
             var initMethod = parser.members.Find(m => m.name == "Init") as Method;
             var hideMethod = parser.members.Find(m => m.name == "HideAll") as Method;
             initMethod.AddLine("m_" + lowerCaseName + ".Init(canvas);");
@@ -113,7 +114,8 @@ namespace DynamicUI
             binding.panelID = screen.gameObject.GetInstanceID();
             binding.fieldName = "m_" + lowerCaseName;
             binding.screenName = type;
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);  
+            ComponentCellContainer.Instance.screenBindings.Add(binding);
+            EditorUtility.SetDirty(ComponentCellContainer.Instance);
         }
 
         public static void SaveUIScreenScript(string body)
@@ -139,7 +141,7 @@ namespace DynamicUI
             bool scriptExists = File.Exists(scriptFilePath);
             if (scriptExists)
             {
-                if (!EditorUtility.DisplayDialog("Warning!", "Script " + panel.name + ".cs" + 
+                if (!EditorUtility.DisplayDialog("Warning!", "Script " + panel.name + ".cs" +
                     " already exists. Overwrite it?", "Yes", "Cancel"))
                     return;
             }
@@ -167,12 +169,12 @@ namespace DynamicUI
             return list;
         }
 
-        static List<Component> FilterDuplicateElements(Component panel) 
+        static List<Component> FilterDuplicateElements(Component panel)
         {
             List<Component> tmpList = new List<Component>();
             List<Component> elements = new List<Component>();
             var existingElements = GetElements(panel);
-         
+
             foreach (var child in panel.GetComponentsInChildren<Transform>(true))
             {
                 if (child == panel.transform) continue;
@@ -180,7 +182,7 @@ namespace DynamicUI
                 var components = child.GetComponents<Component>();
                 foreach (var c in components)
                 {
-                    if(c is CanvasRenderer == false)
+                    if (c is CanvasRenderer == false)
                     {
                         if (existingElements.FindIndex(e => e && e.GetInstanceID() == c.GetInstanceID()) < 0)
                         {
@@ -199,7 +201,7 @@ namespace DynamicUI
                         elements.AddRange(tmpList);
                     }
                 }
-                else if(tmpList.Count > 0)
+                else if (tmpList.Count > 0)
                 {
                     elements.Add(tmpList[0]);
                 }
@@ -250,6 +252,7 @@ namespace DynamicUI
             .AddDirective("UnityEngine", "DynamicUI", "UnityEngine.UI")
             .AddRegion("Initilization")
             .AddRegion("Elements")
+            .AddRegion("Events")
             .AddMember(new Method("void", "Init", "override", "public", "Initilization")
                 .AddLine("base.Init(canvas)")
                 .AddParameters(new Method.Parameter("DUICanvas", "canvas")))
@@ -268,14 +271,15 @@ namespace DynamicUI
             if (container.pendingScriptCompile)
             {
                 container.pendingScriptCompile = false;
-           
-             
+
+
                 if (container.operationType == ComponentCellContainer.OperationType.Create)
                 {
                     var newPannel = panel.AddComponent(Helper.GetType(container.newTypeName));
                     BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
+                    AddScreen(new MenuCommand(newPannel));
                 }
-                else if(container.operationType == ComponentCellContainer.OperationType.Update)
+                else if (container.operationType == ComponentCellContainer.OperationType.Update)
                 {
                     var newPannel = panel.GetComponent(Helper.GetType(container.newTypeName));
                     BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
@@ -284,6 +288,8 @@ namespace DynamicUI
             foreach (var binding in container.screenBindings)
             {
                 panel = EditorUtility.InstanceIDToObject(binding.panelID) as GameObject;
+                if (!panel)
+                    continue;
                 var canvas = panel.GetComponentInParent<UIManager>();
                 var screenContainer = new SerializedObject(canvas).FindProperty("m_screens");
                 screenContainer.FindPropertyRelative(binding.fieldName).objectReferenceValue = panel.GetComponent(binding.screenName);
@@ -292,6 +298,48 @@ namespace DynamicUI
             container.screenBindings.Clear();
             EditorUtility.SetDirty(container);
         }
+
+        public static void AddEventListenersToClass(Class mainClass, ComponentCell c, Method initMethod)
+        {
+            if (c.type == "Button" || c.type == "DUIButton")
+            {
+                var callbackName = "On" + c.fieldName.ToUpperFirst() + "Pressed";
+                initMethod.AddLine(string.Format("elements.{0}.onClick.AddListener({1});", c.fieldName, callbackName));
+                mainClass.AddMember(new Method("void", callbackName, "", "", "Events"));
+            }
+            else if (c.type == "Toggle")
+            {
+                var callbackName = "On" + c.fieldName.ToUpperFirst() + "Changed";
+                initMethod.AddLine(string.Format("elements.{0}.onValueChanged.AddListener({1});", c.fieldName, callbackName));
+                mainClass.AddMember(new Method("void", callbackName, "", "", "Events", new Method.Parameter("bool", "selected")));
+            }
+            else if (c.type == "Slider")
+            {
+                var callbackName = "On" + c.fieldName.ToUpperFirst() + "Changed";
+                initMethod.AddLine(string.Format("elements.{0}.onValueChanged.AddListener({1});", c.fieldName, callbackName));
+                mainClass.AddMember(new Method("void", callbackName, "", "", "Events", new Method.Parameter("float", "value")));
+            }
+            else if (c.type == "DUIToggle")
+            {
+                var callbackName = "On" + c.fieldName.ToUpperFirst() + "Changed";
+                initMethod.AddLine(string.Format("elements.{0}.onToggleChange.AddListener({1});", c.fieldName, callbackName));
+                mainClass.AddMember(new Method("void", callbackName, "", "", "Events", new Method.Parameter("bool", "selected")));
+            }
+            else if (c.type == "DUIRaycaster")
+            {
+                var callbackName = "On" + c.fieldName.ToUpperFirst() + "Down";
+                initMethod.AddLine(string.Format("elements.{0}.onPointerDown.AddListener({1});", c.fieldName, callbackName));
+                mainClass.AddMember(new Method("void", callbackName, "", "", "Events"));
+            }
+            else if (c.type == "InputField")
+            {
+                var callbackName = "On" + c.fieldName.ToUpperFirst() + "Changed";
+                initMethod.AddLine(string.Format("elements.{0}.onValueChanged.AddListener({1});", c.fieldName, callbackName));
+                mainClass.AddMember(new Method("void", callbackName, "", "", "Events", new Method.Parameter("string", "value")));
+            }
+        }
+
+
 
         public static void BindElements(SerializedProperty obj)
         {
@@ -312,10 +360,12 @@ namespace DynamicUI
         {
             var mainClass = ComponentCellContainer.Instance.mainClass;
             Class elementsClass = mainClass.members.Find(m => m is Class && m.name == "Elements") as Class;
-
+            var initMethod = mainClass.members.Find(m => m.name == "Init") as Method;
+            
             foreach (var c in components)
             {
                 var f = CreateField(c);
+                AddEventListenersToClass(mainClass, c, initMethod);
                 elementsClass.AddMember(f);
             }
             foreach (var c in components)
