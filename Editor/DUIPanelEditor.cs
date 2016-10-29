@@ -120,6 +120,10 @@ namespace DynamicUI
 
         public static void SaveUIScreenScript(string body)
         {
+            if(!Directory.Exists(scriptsFolder))
+            {
+                Directory.CreateDirectory(scriptsFolder);
+            }
             var ft = File.CreateText(uiScreensScriptsPath);
 
             var comment = @"///
