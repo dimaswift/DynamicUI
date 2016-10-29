@@ -290,10 +290,18 @@ namespace DynamicUI
                 panel = EditorUtility.InstanceIDToObject(binding.panelID) as GameObject;
                 if (!panel)
                     continue;
-                var canvas = panel.GetComponentInParent<UIManager>();
-                var screenContainer = new SerializedObject(canvas).FindProperty("m_screens");
-                screenContainer.FindPropertyRelative(binding.fieldName).objectReferenceValue = panel.GetComponent(binding.screenName);
-                screenContainer.serializedObject.ApplyModifiedProperties();
+                var canvas = panel.GetComponentInParent(System.Type.GetType("UIManager"));
+                if(canvas)
+                {
+                    var screenContainer = new SerializedObject(canvas).FindProperty("m_screens");
+                    screenContainer.FindPropertyRelative(binding.fieldName).objectReferenceValue = panel.GetComponent(binding.screenName);
+                    screenContainer.serializedObject.ApplyModifiedProperties();
+                }
+                else
+                {
+                    Debug.Log(string.Format("{0}", "Please add UIManager.cs script first!")); 
+                }
+              
             }
             container.screenBindings.Clear();
             EditorUtility.SetDirty(container);
