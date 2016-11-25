@@ -53,7 +53,7 @@
 
         void Awake()
         {
-            if (m_initializeOnAwake)
+            if (m_initializeOnAwake && !m_initialized)
                 Init();
         }
 
