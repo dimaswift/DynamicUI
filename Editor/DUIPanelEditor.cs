@@ -300,7 +300,11 @@ namespace DynamicUI
                     if (canvas)
                     {
                         var screenContainer = new SerializedObject(canvas).FindProperty("m_screens");
-                        screenContainer.FindPropertyRelative(binding.fieldName).objectReferenceValue = panel.GetComponent(binding.screenName);
+                        var p = screenContainer.FindPropertyRelative(binding.fieldName);
+                        if(p != null)
+                        {
+                            p.objectReferenceValue = panel.GetComponent(binding.screenName);
+                        }
                         screenContainer.serializedObject.ApplyModifiedProperties();
                     }
                     else

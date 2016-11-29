@@ -9,6 +9,8 @@
         protected Side m_hideSide;
         [SerializeField]
         protected bool m_resetPositionOnLoad = true;
+        [SerializeField]
+        protected DUIButton m_backButton;
 
         public Side hideSide { get { return m_hideSide; } set { m_hideSide = value; } }
         [EnumFlag]
@@ -43,6 +45,11 @@
                     m_canvasGroup = gameObject.AddComponent<CanvasGroup>();
                 m_hasCanvasGroup = true;
             }
+        }
+
+        protected virtual void OnBackPressed()
+        {
+            
         }
 
         void ResetPos ()

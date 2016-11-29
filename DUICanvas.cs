@@ -9,6 +9,8 @@
         bool m_initialized = false;
         DUIAnimated[] m_animatedElements;
 
+        public DUIPanel currentPanel { get; private set; }
+
         public RectTransform rectTransform
         {
             get {  if (!m_initialized) Init(); return m_rectTransform; }
