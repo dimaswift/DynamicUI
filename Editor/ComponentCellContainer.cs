@@ -14,7 +14,7 @@ namespace DynamicUI
         public int panelID;
         public string elementsClassString;
         public List<ComponentCell> cells = new List<ComponentCell>();
-        public Class mainClass;
+        public Class pendingClass;
         public OperationType operationType;
         public enum OperationType { Create, Update }
 

@@ -16,7 +16,7 @@
         // Editor exposed members:
 
         [SerializeField]
-        protected bool m_initializeOnAwake = true;
+        protected bool m_initializeOnAwake = false;
         [SerializeField]
         protected bool m_disableOnHide = true;
 
