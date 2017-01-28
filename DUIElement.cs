@@ -88,11 +88,19 @@
             if (!m_visible)
             {
                 SetActive(true);
-                OnShow();
                 m_visible = true;
             }
         }
-
+        public void ShowImmediately()
+        {
+            SetActive(true);
+            m_visible = true;
+        }
+        public void HideImmediately()
+        {
+            SetActive(false);
+            m_visible = false;
+        }
         /// <summary>
         /// Hides element.
         /// </summary>
@@ -100,7 +108,7 @@
         {
             if (m_visible)
             {
-                OnHide();
+                OnScreenWillHideAnimated();
                 m_visible = false;
                 if (m_disableOnHide)
                     SetActive(false);
@@ -120,9 +128,9 @@
             }
         }
 
-        protected virtual void OnShow() { }
+        protected virtual void OnScreenWillShowAnimated() { }
 
-        protected virtual void OnHide() { }
+        protected virtual void OnScreenWillHideAnimated() { }
 
     }
 

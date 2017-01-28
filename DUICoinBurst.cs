@@ -3,7 +3,7 @@ using HandyUtilities;
 
 namespace DynamicUI
 {
-    public class CoinBurst : DUIPanel
+    public class DUICoinBurst : DUIScreen
     {
         [SerializeField]
         RandomFloatRange m_positionSpread = new RandomFloatRange(10, 100);

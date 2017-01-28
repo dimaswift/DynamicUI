@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using HandyUtilities;
+using UnityEditor;
 
 namespace DynamicUI
 {
@@ -14,6 +15,9 @@ namespace DynamicUI
         public bool configured = false;
         [HideInInspector]
         public bool pendingAddCanvasScript = false;
+
+        [HideInInspector]
+        public List<DUIPendingComponentContainer> pendingComponents = new List<DUIPendingComponentContainer>();
     }
 
 }

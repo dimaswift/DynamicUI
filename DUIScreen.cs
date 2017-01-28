@@ -3,31 +3,32 @@
     using UnityEngine;
     using UnityEngine.UI;
 
-    public class DUIPanel : DUIAnimated
+    public class DUIScreen : DUIAnimated
     {
         [SerializeField]
         protected Side m_hideSide;
         [SerializeField]
         protected bool m_resetPositionOnLoad = true;
         [SerializeField]
-        protected DUIButton m_backButton;
-
-        public Side hideSide { get { return m_hideSide; } set { m_hideSide = value; } }
-        [EnumFlag]
-        [SerializeField]
-        protected HideOptions m_hideOptions;
+        bool m_showBackButton = true;
         [SerializeField]
         protected bool m_stretchToScreenSize = true;
+        [SerializeField]
+        protected bool m_isScreen = true;
+
         protected CanvasGroup m_canvasGroup;
-
-        public HideOptions hideOptions { get { return m_hideOptions; } set { m_hideOptions = value; } }
-
-        [System.Flags]
-        public enum HideOptions { Position = 1, Scale = 2, Alpha = 4 }
 
         protected Vector2 m_hiddenPosition, m_visiblePosition, m_visibleScale, m_hiddenScale = Vector3.zero;
 
         bool m_hasCanvasGroup = false;
+
+        public Side hideSide { get { return m_hideSide; } set { m_hideSide = value; } }
+
+        public DUIScreen prevScreen { get; private set; }
+
+        public bool showBackButton { get { return m_showBackButton; } }
+
+        public bool showedUsingBackButton { get; set; }
 
         public override void Init(DUICanvas canvas)
         {
@@ -38,7 +39,7 @@
                 Invoke("ResetPos", .5f);
             m_visibleScale = rectTransform.localScale;
 
-            if (HasOption(HideOptions.Alpha))
+            if (HasAnamtionFlag(AnimationFlags.Alpha))
             {
                 m_canvasGroup = GetComponent<CanvasGroup>();
                 if (m_canvasGroup == null)
@@ -47,9 +48,11 @@
             }
         }
 
-        protected virtual void OnBackPressed()
+        public virtual bool allowUpdatingElements { get { return true; } }
+
+        public void SetPrevScreen(DUIScreen screen)
         {
-            
+            prevScreen = screen;
         }
 
         void ResetPos ()
@@ -59,10 +62,29 @@
             rectTransform.anchoredPosition = Vector2.zero;
         }
 
-        protected bool HasOption(HideOptions opt)
+        public override void Hide()
         {
-            return (m_hideOptions & opt) == opt;
+            base.Hide();
+            showedUsingBackButton = false;
         }
+
+        public void ShowPreviousScreen()
+        {
+            if(prevScreen)
+            {
+                prevScreen.showedUsingBackButton = true;
+                prevScreen.Show();
+            }
+        }
+
+        public override void Show()
+        {
+            base.Show();
+            if(m_isScreen)
+                parentCanvas.SetCurrentScreen(this);
+        }
+
+
 
         protected Vector2 GetHiddenPos()
         {
@@ -92,15 +114,15 @@
 
         protected override void OnAnimate(float curveValue)
         {
-            if (HasOption(HideOptions.Position))
+            if (HasAnamtionFlag(AnimationFlags.Position))
             {
                 MoveToPosition(curveValue);
             }
-            if(HasOption(HideOptions.Alpha))
+            if(HasAnamtionFlag(AnimationFlags.Alpha))
             {
                 SetAlpha(curveValue);
             }
-            if(HasOption(HideOptions.Scale))
+            if(HasAnamtionFlag(AnimationFlags.Scale))
             {
                 ScaleToSize(curveValue);
             }
@@ -132,12 +154,12 @@
 
         protected override void OnAnimationStarted()
         {
-            if(HasOption(HideOptions.Position))
+            if(HasAnamtionFlag(AnimationFlags.Position))
             {
                 //m_hiddenPosition = GetHiddenPos();
                 //m_visiblePosition = GetVisiblePos();
             }
-            if(HasOption(HideOptions.Alpha))
+            if(HasAnamtionFlag(AnimationFlags.Alpha))
             {
                 m_canvasGroup.alpha = m_visible ? 0 : 1;
             }

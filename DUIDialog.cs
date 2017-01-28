@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace DynamicUI
 {
-    public class DUIDialog : DUIPanel
+    public class DUIDialog : DUIScreen
     {
         static DUIDialog m_instance;
 
@@ -27,7 +27,7 @@ namespace DynamicUI
                 m_instance = this;
             m_resetPositionOnLoad = true;
             base.Init();
-            m_okayButton.onClick.AddListener(HideWithAnimation);
+            m_okayButton.onClick.AddListener(Hide);
             if (m_instance == this)
                 Hide();
         }
@@ -35,7 +35,7 @@ namespace DynamicUI
         public void Open(string message)
         {
             m_messageText.text = message;
-            ShowWithAnimation();
+            Show();
         }
     }
 

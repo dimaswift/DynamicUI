@@ -11,7 +11,7 @@ namespace DynamicUI
         public List<ScreenBinding> screenBindings = new List<ScreenBinding>();
 
         public string newTypeName;
-        public int panelID;
+        public int screenID;
         public string elementsClassString;
         public List<ComponentCell> cells = new List<ComponentCell>();
         public Class pendingClass;
@@ -23,7 +23,10 @@ namespace DynamicUI
         {
             public string screenName;
             public string fieldName;
-            public int panelID;
+            public int targetGameObjectID;
         }
+
+
+
     }
 }

@@ -6,23 +6,42 @@
     public class DUIAnimated : DUIElement
     {
         [SerializeField]
-        protected AnimationOptions m_animationOptions = new AnimationOptions();
+        protected AnimationSettings m_animationSettings = new AnimationSettings();
+        [SerializeField]
+        [EnumFlag]
+        protected AnimationFlags m_animationFlags;
 
         bool m_isAnimating;
         float m_animTime;
         Vector3 m_hiddenPos, m_visiblePos;
-        
+
+        [System.Flags]
+        public enum AnimationFlags { Position = 1, Scale = 2, Alpha = 4 }
+
+        public AnimationFlags animationFlags { get { return m_animationFlags; } set { m_animationFlags = value; } }
+
         public bool isAnimating { get { return m_isAnimating; } }
 
-        public AnimationOptions animationOptions
+
+        public AnimationSettings animationSettings
         {
             get
             {
-                return m_animationOptions;
+                return m_animationSettings;
             }
             set
             {
-                m_animationOptions = value;
+                m_animationSettings = value;
+            }
+        }
+
+        public bool hasAnimation
+        {
+            get
+            {
+                return HasAnamtionFlag(AnimationFlags.Alpha) ||
+                        HasAnamtionFlag(AnimationFlags.Position) ||
+                        HasAnamtionFlag(AnimationFlags.Scale);
             }
         }
 
@@ -43,27 +62,42 @@
         protected virtual void OnAnimationStarted()  {  }
 
         /// <summary>
-        /// Shows element using animation.
-        /// </summary>
-        public void ShowWithAnimation()
-        {
-            if (!m_visible)
-            {
-                Show();
-                StartAnimation();
-            }
-        }
-        /// <summary>
         /// Hides element using animation.
         /// </summary>
-        public void HideWithAnimation()
+        public override void Hide()
         {
+            if(hasAnimation == false)
+            {
+                base.Hide();
+                return;
+            }
             if (m_visible)
             {
-                OnHide();
+                OnScreenWillHideAnimated();
                 m_visible = false;
                 StartAnimation();
             }
+        }
+
+        public override void Show()
+        {
+            if (hasAnimation == false)
+            {
+                base.Show();
+                return;
+            }
+            if (!m_visible)
+            {
+                OnScreenWillShowAnimated();
+                SetActive(true);
+                m_visible = true;
+                StartAnimation();
+            }
+        }
+
+        public bool HasAnamtionFlag(AnimationFlags opt)
+        {
+            return (m_animationFlags & opt) == opt;
         }
 
         /// <summary>
@@ -73,7 +107,7 @@
         {
             if (m_isActive)
             {
-                m_animTime = m_animationOptions.curveStart;
+                m_animTime = m_animationSettings.curveStart;
                 OnAnimationStarted();
                 m_isAnimating = true;
             }
@@ -87,11 +121,11 @@
         {
             if(m_isAnimating)
             {
-                float end = m_animationOptions.curveEnd;
+                float end = m_animationSettings.curveEnd;
                 if (m_animTime <= end)
                 {
-                    m_animTime += delta * m_animationOptions.speed * AnimationOptions.MAX_SPEED;
-                    OnAnimate(m_animationOptions.curve.Evaluate(m_animTime));
+                    m_animTime += delta * m_animationSettings.speed * AnimationSettings.MAX_SPEED;
+                    OnAnimate(m_animationSettings.curve.Evaluate(m_animTime));
                 }
                 else
                 {
@@ -104,15 +138,15 @@
         }
 
         [System.Serializable]
-        public class AnimationOptions
+        public class AnimationSettings
         {
             public AnimationCurve curve = AnimationCurve.EaseInOut(0, 0, 1, 1);
             [Range(0f, 1f)]
             public float speed = .5f;
 
-            public AnimationOptions() { }
+            public AnimationSettings() { }
 
-            public AnimationOptions(AnimationCurve curve, float speed) 
+            public AnimationSettings(AnimationCurve curve, float speed) 
             {
                 this.speed = speed;
                 this.curve = curve;

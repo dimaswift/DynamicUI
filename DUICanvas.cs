@@ -9,7 +9,10 @@
         bool m_initialized = false;
         DUIAnimated[] m_animatedElements;
 
-        public DUIPanel currentPanel { get; private set; }
+        [SerializeField]
+        protected Button m_backButton;
+
+        public DUIScreen currentScreen { get; private set; }
 
         public RectTransform rectTransform
         {
@@ -23,7 +26,30 @@
                 m_rectTransform = GetComponent<RectTransform>();
                 m_initialized = true;
                 m_animatedElements = GetComponentsInChildren<DUIAnimated>(true);
+                if (m_backButton)
+                    m_backButton.onClick.AddListener(OnBackPressed);
             }
+        }
+
+        protected virtual void OnBackPressed()
+        {
+            if(currentScreen)
+            {
+                currentScreen.ShowPreviousScreen();
+            }
+        }
+
+        public void SetCurrentScreen(DUIScreen screen)
+        {
+            m_backButton.gameObject.SetActive(currentScreen != null && screen.showBackButton);
+
+            if(screen.showedUsingBackButton == false)
+                screen.SetPrevScreen(currentScreen);
+
+            if (currentScreen)
+                currentScreen.Hide();
+            
+            currentScreen = screen;
         }
 
         void Update()
