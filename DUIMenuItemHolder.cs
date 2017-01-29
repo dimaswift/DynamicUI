@@ -23,7 +23,7 @@ namespace DynamicUI
     }
 
     [System.Serializable]
-    public class DUIMenuItem : DUIItem
+    public class DUIMenuItem
     {
         [SerializeField]
         string m_name;

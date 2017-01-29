@@ -8,51 +8,59 @@ namespace DynamicUI
 {
     [ExecuteInEditMode]
     [RequireComponent(typeof(ScrollRect), typeof(RectTransform))]
-    public abstract class DUIList<ItemHolder, Item> : DUIElement where ItemHolder : DUIItemHolder<Item> where Item : DUIItem
+    public abstract class DUIList<ItemHolder, Item> : DUIElement where ItemHolder : DUIItemHolder<Item>
     {
         [SerializeField]
-        ItemHolder m_itemHolderPrefab;
+        protected ItemHolder m_itemHolderPrefab;
         [SerializeField]
-        RectTransform m_container;
+        protected RectTransform m_container;
         [SerializeField]
         [HideInInspector]
-        bool m_hasBeenSetUp;
+        protected bool m_hasBeenSetUp;
         [SerializeField]
-        Item[] m_items;
+        protected Item[] m_items;
+        [SerializeField]
+        [HideInInspector]
+        protected ScrollRect m_scroll;
 
-        List<ItemHolder> m_itemHolders = new List<ItemHolder>();
+        protected List<ItemHolder> m_itemHolders = new List<ItemHolder>();
 
+        public Item[] items { get { return m_items; } }
         public List<ItemHolder> itemHolders { get { return m_itemHolders; } }
+        public ScrollRect scrollRect { get { return m_scroll; } }
 
-        void Awake()
+
+        void Start()
         {
-            if (Application.isEditor)
+            if (Application.isPlaying == false && !m_hasBeenSetUp)
             { 
                 m_hasBeenSetUp = true;
-                SetUp();
+                EditorSetUp();
             }
         }
 
         public override void Init()
         {
-            base.Init();
-            SetItems(m_items);
+            if (Application.isPlaying)
+            {
+                base.Init();
+                SetItems(m_items);
+            }
         }
 
-        public void SetUp()
+        protected virtual void EditorSetUp()
         {
-            var scroll = GetComponent<ScrollRect>();
+#if UNITY_EDITOR
+            m_scroll = GetComponent<ScrollRect>();
             if (transform.childCount > 0)
-                scroll.content = transform.GetChild(0).GetComponent<RectTransform>();
-            scroll.horizontal = false;
-            scroll.viewport = GetComponent<RectTransform>();
-            m_container = scroll.content;
+                scrollRect.content = transform.GetChild(0).GetComponent<RectTransform>();
+            m_scroll.horizontal = false;
+            m_scroll.viewport = GetComponent<RectTransform>();
+            m_container = m_scroll.content;
             m_itemHolderPrefab = GetComponentInChildren<ItemHolder>();
             m_hasBeenSetUp = true;
-#if UNITY_EDITOR
             UnityEditor.EditorUtility.SetDirty(this);
-#endif
-            
+#endif  
         }
 
         public virtual void OnItemHolderSetUp(ItemHolder holder, int index) { }
@@ -60,12 +68,13 @@ namespace DynamicUI
         public virtual void SetItems(Item[] itemList)
         {
             float totalHeight = 0;
+            m_items = itemList;
             for (int i = 0; i < itemList.Length; i++)
             {
                 var item = itemList[i];
                 var itemHolder = i < m_itemHolders.Count ? m_itemHolders[i] : Instantiate(m_itemHolderPrefab);
                 itemHolder.Init();
-                itemHolder.SetUp(item);
+                itemHolder.index = i;
                 OnItemHolderSetUp(itemHolder, i);
                 itemHolder.gameObject.SetActive(true);
                 itemHolder.rectTransform.SetParent(m_container);
@@ -89,7 +98,6 @@ namespace DynamicUI
                         text.text.color = textColor.textColor;
                     }
                 }
-             
                 m_container.pivot = new Vector2(.5f, 1);
                 m_container.anchorMax = new Vector2(.5f, 1);
                 m_container.anchorMin = new Vector2(.5f, 1);
@@ -101,6 +109,7 @@ namespace DynamicUI
                 totalHeight += itemHolder.rectTransform.sizeDelta.y;
                 if (m_itemHolders.Contains(itemHolder) == false)
                     m_itemHolders.Add(itemHolder);
+                itemHolder.SetUp(item);
             }
 
             for (int i = 0; i < m_itemHolders.Count; i++)

@@ -8,9 +8,11 @@ using UnityEngine.EventSystems;
 namespace DynamicUI
 {
     [RequireComponent(typeof(RectTransform))]
-    public abstract class DUIItemHolder<T> : MonoBehaviour where T : DUIItem
+    public abstract class DUIItemHolder<T> : MonoBehaviour
     {
         public RectTransform rectTransform { get; private set; }
+
+        public int index { get; set; }
 
         public T item { get; private set; }
 
@@ -26,9 +28,4 @@ namespace DynamicUI
         
     }
 
-    [System.Serializable]
-    public class DUIItem
-    {
-
-    }
 }

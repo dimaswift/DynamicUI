@@ -94,7 +94,7 @@ public class {0} : DUIItemHolder<{1}>
 }}
 
 [System.Serializable]
-public class {1} : DUIItem
+public class {1}
 {{
 
 }}", holderName, itemName);
@@ -114,7 +114,7 @@ namespace {2}
     }}
 
     [System.Serializable]
-    public class {1} : DUIItem
+    public class {1}
     {{
 
     }}

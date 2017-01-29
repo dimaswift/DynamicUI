@@ -7,34 +7,49 @@ using UnityEngine.EventSystems;
 
 namespace DynamicUI
 {
-    public class DUIReordableItemHolder<T> : DUIItemHolder<T>, IPointerDownHandler, IPointerUpHandler where T : DUIItem
+    public class DUIReordableItemHolder<T> : DUIItemHolder<T>, IPointerDownHandler, IPointerUpHandler
     {
         public bool isDragging { get; private set; }
 
-        DUIReordableList<DUIReordableItemHolder<T>, T> m_list;
+        DUIReordableListBridge m_list;
 
-        public void Init(DUIReordableList<DUIReordableItemHolder<T>, T> list)
+        public Vector2 positionInList { get; set; }
+
+        public bool isMoving { get { return Mathf.Abs(positionInList.y - rectTransform.anchoredPosition.y) > 1; } }
+
+        public bool isRedyToBeDeleted { get; set; }
+
+        public void SetParentList(DUIReordableListBridge list)
         {
-            Init();
             m_list = list;
         }
-
         public void OnPointerDown(PointerEventData data)
         {
-            m_list.OnItemStartDragging(this);
+            m_list.OnItemPointerDown(this);
             isDragging = true;
         }
 
         public void OnPointerUp(PointerEventData data)
         {
-            m_list.OnItemEndDragging(this);
+            m_list.OnItemPointerUp(this);
             isDragging = false;
         }
 
-        public override void SetUp(T item)
+        public virtual void OnReadyToBeDeleted(bool readyToBeDeleted)
         {
-            
+
         }
+
+        public virtual void OnUndoDelete()
+        {
+            gameObject.SetActive(true);
+        }
+
+        public virtual void OnDelete()
+        {
+            gameObject.SetActive(false);
+        }
+
     }
 
 }
