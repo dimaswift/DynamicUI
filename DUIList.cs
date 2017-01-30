@@ -28,7 +28,7 @@ namespace DynamicUI
         public Item[] items { get { return m_items; } }
         public List<ItemHolder> itemHolders { get { return m_itemHolders; } }
         public ScrollRect scrollRect { get { return m_scroll; } }
-
+        protected float m_canvasScale;
 
         void Start()
         {
@@ -39,12 +39,20 @@ namespace DynamicUI
             }
         }
 
+        void CalculateCanvasSize()
+        {
+            m_canvasScale = GetComponentInParent<CanvasScaler>().transform.localScale.x;
+        }
+
+
         public override void Init()
         {
             if (Application.isPlaying)
             {
                 base.Init();
+                m_itemHolderPrefab.Init();
                 SetItems(m_items);
+                Invoker.Add(CalculateCanvasSize, .1f);
             }
         }
 
@@ -67,8 +75,12 @@ namespace DynamicUI
 
         public virtual void SetItems(Item[] itemList)
         {
+            CalculateCanvasSize();
             float totalHeight = 0;
+            float prevItemPos = 0;
+            float prevItemHeight = 0;
             m_items = itemList;
+            
             for (int i = 0; i < itemList.Length; i++)
             {
                 var item = itemList[i];
@@ -102,10 +114,13 @@ namespace DynamicUI
                 m_container.anchorMax = new Vector2(.5f, 1);
                 m_container.anchorMin = new Vector2(.5f, 1);
                 m_container.anchoredPosition = Vector2.zero;
-                itemHolder.rectTransform.pivot = new Vector2(.5f, 1f);
+                
                 itemHolder.rectTransform.anchorMax = new Vector2(.5f, 1);
                 itemHolder.rectTransform.anchorMin = new Vector2(.5f, 1);
-                itemHolder.rectTransform.anchoredPosition = new Vector2(0, -totalHeight);
+                itemHolder.rectTransform.pivot = new Vector2(.5f, .5f);
+                prevItemPos = (prevItemPos - prevItemHeight * .5f) - (itemHolder.rectTransform.sizeDelta.y * itemHolder.rectTransform.pivot.y);
+                prevItemHeight = itemHolder.rectTransform.sizeDelta.y;
+                itemHolder.rectTransform.anchoredPosition = new Vector2(0, prevItemPos);
                 totalHeight += itemHolder.rectTransform.sizeDelta.y;
                 if (m_itemHolders.Contains(itemHolder) == false)
                     m_itemHolders.Add(itemHolder);

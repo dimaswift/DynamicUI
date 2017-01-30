@@ -23,34 +23,27 @@ namespace DynamicUI
         protected bool m_allowDeleting = false;
         [SerializeField]
         float m_maxScrollSpeed = 1f;
-
+    
         public Holder draggedHolder { get; private set; }
         public bool isDraggingItem { get; private set; }
 
         bool m_moveingHoldersToPos;
         bool m_isHoldingItem;
         float m_dragTimer;
-        float m_canvasScale;
+   
         Vector2 m_pressedItemPos;
         Vector2 m_pressedPointerPos;
 
         public event System.Action onListChanged;
 
         List<Holder> m_backUpHolderList;
-      
-        public override void Init()
-        {
-            base.Init();
-            Invoker.Add(CalculateCanvasSize, .1f);
-        }
 
-        void CalculateCanvasSize()
-        {
-            m_canvasScale = GetComponentInParent<CanvasScaler>().transform.localScale.x;
-        }
+        RectTransform test;
 
         public override void SetItems(Item[] itemList)
         {
+            test = new GameObject("Test").AddComponent<RectTransform>();
+            test.SetParent(m_container);
             base.SetItems(itemList);
            
             for (int i = 0; i < itemHolders.Count; i++)
@@ -86,7 +79,7 @@ namespace DynamicUI
             m_pressedItemPos = draggedHolder.rectTransform.position;
             m_pressedPointerPos = GetPointer();
             scrollRect.enabled = false;
-            draggedHolder.rectTransform.SetParent(rectTransform.parent);
+            draggedHolder.rectTransform.SetAsLastSibling();
             SetHoldersTargetPosition();
             m_moveingHoldersToPos = true;
         }
@@ -106,16 +99,18 @@ namespace DynamicUI
         protected virtual void OnDraggingItem(Holder holder)
         {
             var draggedItemRect = draggedHolder.rectTransform;
+            var draggedRectHeight = draggedItemRect.sizeDelta.y * m_canvasScale;
             var pointer = GetPointer();
          //   draggedItemRect.localScale = Vector3.Lerp(draggedItemRect.localScale, new Vector3(1.2f, 1.2f, 1.2f), Time.unscaledDeltaTime * 3);
             var delta = m_pressedPointerPos - pointer;
             if(m_allowDeleting == false)
                 delta.x = 0;
             draggedItemRect.position = m_pressedItemPos - delta;
+            var draggedPos = draggedItemRect.anchoredPosition.y + (draggedItemRect.sizeDelta.y * m_canvasScale * draggedItemRect.pivot.y);
             var viewPortTopPos = rectTransform.position.y + (Vector3.Scale(rectTransform.sizeDelta * m_canvasScale, rectTransform.pivot)).y;
             var viewPortBottomPos = rectTransform.position.y - (Vector3.Scale(rectTransform.sizeDelta * m_canvasScale, rectTransform.pivot)).y;
             var draggedRectWidth = draggedItemRect.sizeDelta.x * m_canvasScale;
-            var draggedRectHeight = draggedItemRect.sizeDelta.y * m_canvasScale;
+       
             if (m_allowDeleting)
             {
                 bool readyToBeDeleted = Mathf.Abs(draggedItemRect.anchoredPosition.x) > draggedRectWidth * .5f;
@@ -129,9 +124,12 @@ namespace DynamicUI
 
             var prevItem = draggedIndex > 0 ? itemHolders[draggedIndex - 1]  : null;
             var nextItem = draggedIndex < itemHolders.Count - 1 ? itemHolders[draggedIndex + 1] : null;
-            var dragItemCenterPos = draggedItemRect.position.y - (draggedRectHeight * .5f);
-            var topDistanceToContainer = draggedItemRect.position.y - viewPortTopPos;
-            var bottomDistanceToContainer = draggedItemRect.position.y - draggedRectHeight - viewPortBottomPos;
+
+            var topDistanceToContainer = (draggedItemRect.position.y - viewPortTopPos) + (draggedRectHeight * .5f);
+            var bottomDistanceToContainer = (draggedItemRect.position.y - viewPortBottomPos) - (draggedRectHeight * .5f);
+
+
+
             if (topDistanceToContainer > 0)
             {
                 var scrollSpeed = Helper.Remap(topDistanceToContainer, 0, draggedRectHeight, 0, m_maxScrollSpeed * .5f);
@@ -148,55 +146,51 @@ namespace DynamicUI
                     scrollRect.normalizedPosition -= Vector2.up * Time.unscaledDeltaTime * scrollSpeed;
                 }
             }
-            if (prevItem && !prevItem.isMoving) 
+
+            if (prevItem && !prevItem.isMoving)
             {
-                var prevItemHeight = prevItem.rectTransform.sizeDelta.y * m_canvasScale * .5f;
-                var prevItemPos = prevItem.rectTransform.position.y - (prevItemHeight);
-                var distanceToPrevItem = draggedItemRect.position.y - prevItemPos;
-                if (distanceToPrevItem > 0)
+                var prevItemHeight = prevItem.rectTransform.sizeDelta.y * m_canvasScale;
+                var prevItemPos = prevItem.rectTransform.anchoredPosition.y - (prevItemHeight * prevItem.rectTransform.pivot.y);
+                var distanceToPrevItem = draggedPos - prevItemPos;
+                var swapThreshold = prevItemHeight * .25f;
+                if (distanceToPrevItem > (draggedRectHeight * .5f) + swapThreshold)
                 {
                     draggedHolder.index = draggedIndex - 1;
                     prevItem.index = draggedIndex;
                     itemHolders[draggedIndex - 1] = draggedHolder;
                     itemHolders[draggedIndex] = prevItem;
                     SetHoldersTargetPosition();
-                    OnListChanged();
-                } 
+                }
             }
-
-            if(nextItem && !nextItem.isMoving)
+            if (nextItem && !nextItem.isMoving)
             {
-                var nextItemHeight = nextItem.rectTransform.sizeDelta.y * m_canvasScale * .5f;
-                var nextItemPos = nextItem.rectTransform.position.y - nextItemHeight;
-                var distanceToNextItem = draggedItemRect.position.y - draggedRectHeight - nextItemPos;
-
-                if (distanceToNextItem < 0)
+                var nextItemHeight = nextItem.rectTransform.sizeDelta.y * m_canvasScale;
+                var nextItemPos = nextItem.rectTransform.anchoredPosition.y + (nextItemHeight * nextItem.rectTransform.pivot.y);
+                var distanceToNextItem = draggedPos - nextItemPos;
+                var swapThreshold = nextItemHeight * .25f;
+                if (distanceToNextItem < (draggedRectHeight * .5f) - swapThreshold)
                 {
                     draggedHolder.index = draggedIndex + 1;
                     nextItem.index = draggedIndex;
                     itemHolders[draggedIndex + 1] = draggedHolder;
                     itemHolders[draggedIndex] = nextItem;
                     SetHoldersTargetPosition();
-                    OnListChanged();
                 }
             }
         }
 
         void SetHoldersTargetPosition()
         {
-            float h = 0f;
+            var h = 0f;
+            var p = 0f;
             for (int i = 0; i < itemHolders.Count; i++)
             {
                 var holder = itemHolders[i];
-                holder.positionInList = new Vector2(0, h);
-                h -= holder.rectTransform.sizeDelta.y;
+                var newH = holder.rectTransform.sizeDelta.y;
+                p = (p - h * .5f) - (newH * holder.rectTransform.pivot.y);
+                h = newH;
+                holder.positionInList = new Vector2(0, p);
             }
-        }
-
-        public override void Show()
-        {
-            base.Show();
-            CalculateCanvasSize();
         }
 
         void MoveHolderToPosition()

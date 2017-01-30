@@ -23,13 +23,13 @@ namespace DynamicUI
         {
             m_list = list;
         }
-        public void OnPointerDown(PointerEventData data)
+        public virtual void OnPointerDown(PointerEventData data)
         {
             m_list.OnItemPointerDown(this);
             isDragging = true;
         }
 
-        public void OnPointerUp(PointerEventData data)
+        public virtual void OnPointerUp(PointerEventData data)
         {
             m_list.OnItemPointerUp(this);
             isDragging = false;
