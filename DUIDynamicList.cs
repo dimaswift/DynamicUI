@@ -15,9 +15,9 @@ namespace DynamicUI
 
         public Holder selectedHolder { get; private set; }
 
-        public override void Init()
+        public override void Init(DUICanvas canvas)
         {
-            base.Init();
+            base.Init(canvas);
             m_removeButton.interactable = false;
         }
 

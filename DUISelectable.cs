@@ -45,10 +45,7 @@ namespace DynamicUI
             m_defaultScale = m_selectionImage.rectTransform.localScale;
             isSelected = m_selectedByDefault;
             m_initialized = true;
-            var fadeDur = m_selectionSettings.transitionDuration;
-            m_selectionSettings.transitionDuration = 0;
-            Select(isSelected);
-            m_selectionSettings.transitionDuration = fadeDur;
+            SetSelectedImmediately(isSelected);
         }
 
         void ScaleTowards(float n)
@@ -74,11 +71,36 @@ namespace DynamicUI
             return (m_selectionSettings.method & m) == m;
         }
 
+        public virtual void SetSelectedImmediately(bool select)
+        {
+            Init();
+            isSelected = select;
+            var s = m_selectionSettings;
+
+            if (HasMethod(SelectionMethod.SpriteSwap))
+            {
+                m_selectionImage.sprite = select ? s.selectedSprite : m_defaultSprite;
+            }
+            if (HasMethod(SelectionMethod.OverlayObject))
+            {
+               s.overlayImage.CrossFadeAlpha(select ? 1 : 0, 0, true);
+            }
+            if (HasMethod(SelectionMethod.Color))
+            {
+                var targetColor = select ? m_selectionSettings.selectedColor : m_selectionSettings.basicColor;
+                m_selectionImage.CrossFadeColor(targetColor, 0, true, true);
+            }
+            if (HasMethod(SelectionMethod.Scale))
+            {
+                m_selectionImage.rectTransform.localScale = select ? s.selectedScale : m_defaultScale;
+            }
+        }
+
         public virtual void Select(bool select)
         {
             Init();
             isSelected = select;
-            var targetColor = select ? m_selectionSettings.selectedColor : m_selectionSettings.basicColor;
+          
             var s = m_selectionSettings;
            
             if (HasMethod(SelectionMethod.SpriteSwap))
@@ -89,11 +111,11 @@ namespace DynamicUI
             {
                 if (s.animatedTransition)
                     s.overlayImage.CrossFadeAlpha(select ? 1 : 0, s.transitionDuration, true);
-                else s.overlayImage.gameObject.SetActive(select);
             }
             if (HasMethod(SelectionMethod.Color))
             {
-                if(s.animatedTransition)
+                var targetColor = select ? m_selectionSettings.selectedColor : m_selectionSettings.basicColor;
+                if (s.animatedTransition)
                     m_selectionImage.CrossFadeColor(targetColor, s.transitionDuration, true, true);
                 else m_selectionImage.color = targetColor;
             }

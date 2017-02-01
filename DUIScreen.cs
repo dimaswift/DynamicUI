@@ -55,6 +55,8 @@
             prevScreen = screen;
         }
 
+
+
         void ResetPos ()
         {
             if (m_stretchToScreenSize)
@@ -83,8 +85,6 @@
             if(m_isScreen)
                 parentCanvas.SetCurrentScreen(this);
         }
-
-
 
         protected Vector2 GetHiddenPos()
         {

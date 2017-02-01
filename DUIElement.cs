@@ -54,7 +54,7 @@
         void Awake()
         {
             if (m_initializeOnAwake && !m_initialized)
-                Init();
+                Init(GetComponentInParent<DUICanvas>());
         }
 
         /// <summary>
@@ -72,12 +72,10 @@
             } 
         }
 
-        public virtual void Init()
+        public void Init()
         {
-            if (!m_initialized)
-            {
+            if (m_initialized) return;
                 Init(GetComponentInParent<DUICanvas>());
-            }
         }
 
         /// <summary>

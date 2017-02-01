@@ -30,9 +30,9 @@ namespace DynamicUI
             }
         }
 
-        public override void Init()
+        public override void Init(DUICanvas canvas)
         {
-            base.Init();
+            base.Init(canvas);
             m_inputField = GetComponent<InputField>();
             m_inputField.onEndEdit.AddListener(OnEndEdit);
             Clear();

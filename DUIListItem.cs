@@ -16,9 +16,12 @@ namespace DynamicUI
 
         public T item { get; private set; }
 
+        public DUISelectable selectable { get; private set; }
+
         public virtual void Init()
         {
             rectTransform = GetComponent<RectTransform>();
+            selectable = GetComponent<DUISelectable>();
         }
 
         public virtual void SetUp(T item)

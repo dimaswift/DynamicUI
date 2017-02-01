@@ -45,11 +45,13 @@ namespace DynamicUI
         }
 
 
-        public override void Init()
+        public override void Init(DUICanvas canvas)
         {
             if (Application.isPlaying)
             {
-                base.Init();
+                base.Init(canvas);
+                if (m_itemHolderPrefab == null)
+                    m_itemHolderPrefab = GetComponentInChildren<ItemHolder>();
                 m_itemHolderPrefab.Init();
                 SetItems(m_items);
                 Invoker.Add(CalculateCanvasSize, .1f);
@@ -75,12 +77,23 @@ namespace DynamicUI
 
         public virtual void SetItems(Item[] itemList)
         {
-            CalculateCanvasSize();
+            m_itemHolderPrefab.gameObject.SetActive(false);
+            m_items = itemList;
+            if (itemList.Length == 0)
+            {
+                foreach (var item in m_itemHolders)
+                {
+                    item.gameObject.gameObject.SetActive(false);
+                }
+                CalculateCanvasSize();
+                return;
+            }
+
             float totalHeight = 0;
             float prevItemPos = 0;
             float prevItemHeight = 0;
-            m_items = itemList;
-            
+            CalculateCanvasSize();
+
             for (int i = 0; i < itemList.Length; i++)
             {
                 var item = itemList[i];
@@ -91,6 +104,7 @@ namespace DynamicUI
                 itemHolder.gameObject.SetActive(true);
                 itemHolder.rectTransform.SetParent(m_container);
                 itemHolder.rectTransform.localScale = Vector3.one;
+
                 var customHeight = item as ICustomHeight;
                 if (customHeight != null)
                 {
@@ -135,7 +149,7 @@ namespace DynamicUI
 
             m_container.sizeDelta = new Vector2(m_container.sizeDelta.x, totalHeight);
 
-            m_itemHolderPrefab.gameObject.SetActive(false);
+          
         }
     }
 

@@ -51,6 +51,7 @@ namespace DynamicUI
                 itemHolders[i].SetParentList(this);
             }
             m_backUpHolderList = new List<Holder>(itemHolders);
+            SetHoldersTargetPosition();
         }
 
         public void UndoDeletedItems()
@@ -250,7 +251,6 @@ namespace DynamicUI
             }
             
             isDraggingItem = false;
-            draggedHolder.rectTransform.localScale = Vector3.one;
             scrollRect.enabled = true;
             draggedHolder.rectTransform.SetParent(m_container);
             draggedHolder = null;

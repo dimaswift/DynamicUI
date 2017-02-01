@@ -6,19 +6,21 @@ using UnityEngine.UI;
 
 namespace DynamicUI
 {
-    public class DUIInfiniteList<ItemHolder, Item> : DUIList<ItemHolder, Item> where ItemHolder : DUIItemHolder<Item>
+    public class DUIInfiniteList<ItemHolder, Item> : DUIList<ItemHolder, Item>
+        where ItemHolder : DUIItemHolder<Item>
+        where Item : DUIInfiniteListItem
     {
-        float m_canvasScale;
+
         protected int m_cellIndex;
         Vector2 m_prevScrollPos;
 
         int m_cellCount;
 
-        public override void Init()
+        public override void Init(DUICanvas canvas)
         {
             if (m_initialized) return;
             m_itemHolderPrefab.Init();
-            base.Init();
+            base.Init(canvas);
             scrollRect.onValueChanged.AddListener(OnScroll);
         
             Invoke("CalculateSizes", .1f);
@@ -43,6 +45,8 @@ namespace DynamicUI
                 var item = itemList[i];
                 var itemHolder = i > itemHolders.Count - 1 ? Instantiate(m_itemHolderPrefab) : itemHolders[i];
                 itemHolder.Init();
+                if (itemHolder.selectable)
+                    itemHolder.selectable.SetSelectedImmediately(item.selected);
                 itemHolder.index = i;
                 itemHolder.SetUp(item);
                 OnItemHolderSetUp(itemHolder, i);
@@ -71,6 +75,7 @@ namespace DynamicUI
             m_container.sizeDelta = new Vector2(m_container.sizeDelta.x, itemList.Length * holderHeight);
 
             m_itemHolderPrefab.gameObject.SetActive(false);
+            
         }
 
         void CalculateSizes()
@@ -99,6 +104,8 @@ namespace DynamicUI
                         m_cellIndex++;
                         firstCell.rectTransform.anchoredPosition = lastCell.rectTransform.anchoredPosition - (Vector2.up * cellHeight);
                         firstCell.SetUp(items[m_cellCount + m_cellIndex - 1]);
+                        if (firstCell.selectable)
+                            firstCell.selectable.SetSelectedImmediately(firstCell.item.selected);
                         itemHolders.RemoveAt(0);
                         itemHolders.Add(firstCell);
                     }
@@ -122,6 +129,8 @@ namespace DynamicUI
                         m_cellIndex--;
                         lastCell.rectTransform.anchoredPosition = firstCell.rectTransform.anchoredPosition + (Vector2.up * cellHeight);
                         lastCell.SetUp(items[m_cellIndex]);
+                        if (lastCell.selectable)
+                            lastCell.selectable.SetSelectedImmediately(lastCell.item.selected);
                         itemHolders.RemoveAt(m_cellCount - 1);
                         itemHolders.Insert(0, lastCell);
                     }
@@ -136,5 +145,10 @@ namespace DynamicUI
             }
             m_prevScrollPos = m_currentScrollPos;
         }
+    }
+
+    public class DUIInfiniteListItem
+    {
+        public bool selected;
     }
 }

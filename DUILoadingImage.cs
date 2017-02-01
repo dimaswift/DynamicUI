@@ -41,9 +41,9 @@ namespace DynamicUI
         public bool isLoading { get; private set; }
         public float timeOutSeconds { get { return m_timeOutSeconds; } set { m_timeOutSeconds = value; } } 
 
-        public override void Init()
+        public override void Init(DUICanvas canvas)
         {
-            base.Init();
+            base.Init(canvas);
             m_loadIconRect = m_loadIcon.rectTransform;
             m_image = GetComponent<Image>();
         }

@@ -29,6 +29,10 @@ namespace DynamicUI
                     DeleteScreen(screen);
                 }
             }
+            if (GUILayout.Button("Bind Existing Elements"))
+            {
+                screen.SendMessage("BindElements", SendMessageOptions.DontRequireReceiver);
+            }
         }
 
         void OnEnable()
@@ -36,7 +40,6 @@ namespace DynamicUI
             if (!File.Exists(uiScreensScriptsPath))
                 SaveUIScreenScript(CreateUIScreensClass().ToString());
         }
-
 
 
         [MenuItem("Dynamic UI/Create DUI Script")]
@@ -131,7 +134,7 @@ namespace DynamicUI
                 var classString = File.ReadAllText(scriptFilePath);
                 var hasNameSpace = string.IsNullOrEmpty(DUISettings.Instance.Namespace) == false;
                 var elementClass = new ClassParser().Parse(GetRegionChunk(classString, "Elements"), hasNameSpace ? 2 : 1);
-
+            
                 bool scriptExists = File.Exists(scriptFilePath);
                 if (scriptExists == false)
                 {
@@ -228,6 +231,7 @@ namespace DynamicUI
             var hideMethod = parser.members.Find(m => m.name == "HideAll") as Method;
             initMethod.AddLine("m_" + lowerCaseName + ".Init(canvas);");
             hideMethod.AddLine("m_" + lowerCaseName + ".HideImmediately();");
+
             SaveUIScreenScript(parser.ToString());
             var binding = new ComponentCellContainer.ScreenBinding();
 
@@ -385,9 +389,11 @@ namespace DynamicUI
             .AddRegion("Elements")
             .AddRegion("Events")
             .AddMember(new Method("void", "Init", "override", "public", "Initilization")
-                .AddLine("base.Init(canvas)")
+                .AddLine("base.Init(canvas);")
                 .AddParameters(new Method.Parameter("DUICanvas", "canvas")))
+                .AddMember(new Method("void", "BindElements", "virtual", "protected").AddLine("elements.Bind(this);"))
             .AddMember(elementsClass);
+            
             mainClass.nameSpace = DUISettings.Instance.Namespace;
             return mainClass;
         }
@@ -556,11 +562,21 @@ namespace DynamicUI
         {
             var elementsClass = ComponentCellContainer.Instance.pendingClass;
 
+            var bindMethod = new Method("void", "Bind", "", "public", "", new Method.Parameter(screen.name, "screen"));
+            bindMethod.AddLine("#if UNITY_EDITOR");
+            bindMethod.AddLine("var root = screen.transform;");
+            bindMethod.AddLine(@"var so = new UnityEditor.SerializedObject(screen).FindProperty(""m_elements"");");
+
             foreach (var c in components)
             {
                 var f = CreateField(c);
                 elementsClass.AddMember(f);
+                bindMethod.AddLine(string.Format(@"so.FindPropertyRelative(""{0}"").objectReferenceValue = root.FindChild(""{1}"").GetComponent<{2}>();", f.name, c.component.transform.GetPath(screen.transform), f.type));
             }
+            bindMethod.AddLine("so.serializedObject.ApplyModifiedProperties();");
+            bindMethod.AddLine("UnityEditor.EditorUtility.SetDirty(screen);");
+            bindMethod.AddLine("#endif");
+            elementsClass.AddMember(bindMethod);
             foreach (var c in components)
             {
                 var p = CreateProperty(c);
@@ -586,13 +602,21 @@ namespace DynamicUI
             var mainClass = ComponentCellContainer.Instance.pendingClass;
             Class elementsClass = mainClass.members.Find(e => e.name == "Elements" && e is Class) as Class;
             var initMethod = mainClass.members.Find(m => m.name == "Init") as Method;
-
+            var bindMethod = new Method("void", "Bind", "", "public", "", new Method.Parameter(mainClass.name, "screen"));
+            bindMethod.AddLine("#if UNITY_EDITOR");
+            bindMethod.AddLine("var root = screen.transform;");
+            bindMethod.AddLine(@"var so = new UnityEditor.SerializedObject(screen).FindProperty(""m_elements"");");
             foreach (var c in components)
             {
                 var f = CreateField(c);
                 AddEventListenersToClass(mainClass, c, initMethod);
                 elementsClass.AddMember(f);
+                bindMethod.AddLine(string.Format(@"so.FindPropertyRelative(""{0}"").objectReferenceValue = root.FindChild(""{1}"").GetComponent<{2}>();", f.name, c.component.transform.GetPath(screen.transform), f.type));
             }
+            bindMethod.AddLine("so.serializedObject.ApplyModifiedProperties();");
+            bindMethod.AddLine("UnityEditor.EditorUtility.SetDirty(screen);");
+            bindMethod.AddLine("#endif");
+            elementsClass.AddMember(bindMethod);
             foreach (var c in components)
             {
                 var p = CreateProperty(c);
@@ -604,7 +628,8 @@ namespace DynamicUI
             container.pendingScriptCompile = true;
             container.newTypeName = mainClass.name;
             container.screenID = screen.gameObject.GetInstanceID();
-            container.elementsClassString = elementsClass.ToString();
+            var hasNameSpace = string.IsNullOrEmpty(DUISettings.Instance.Namespace) == false;
+            container.elementsClassString = elementsClass.ToString(hasNameSpace ? 2 : 1);
 
             EditorUtility.SetDirty(ComponentCellContainer.Instance);
             Undo.RecordObject(screen.gameObject, "Screen");

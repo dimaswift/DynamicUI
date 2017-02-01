@@ -21,12 +21,12 @@ namespace DynamicUI
         [SerializeField]
         Text m_messageText;
 
-        public override void Init()
+        public override void Init(DUICanvas canvas)
         {
             if (m_instance == null)
                 m_instance = this;
             m_resetPositionOnLoad = true;
-            base.Init();
+            base.Init(canvas);
             m_okayButton.onClick.AddListener(Hide);
             if (m_instance == this)
                 Hide();
