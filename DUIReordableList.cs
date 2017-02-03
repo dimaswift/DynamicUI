@@ -6,14 +6,21 @@ using UnityEngine.UI;
 
 namespace DynamicUI
 {
-    public interface DUIReordableListBridge
+    public interface IDUIList
     {
-        void OnItemPointerDown(object holder);
-        void OnItemPointerUp(object holder);
+        void OnHolderClick(object holder);
+        void OnItemSetUp(object holder);
     }
 
-    public class DUIReordableList<Holder, Item> : DUIList<Holder, Item>, DUIReordableListBridge
-        where Holder : DUIReordableItemHolder<Item>
+    public interface IDUIListExtended : IDUIList
+    {
+        void OnHolderPointerDown(object holder);
+        void OnHolderPointerUp(object holder);
+    }
+
+
+    public class DUIReordableList<Holder> : DUIList<Holder>, IDUIListExtended
+        where Holder : DUIReordableItemHolder
     {
         [SerializeField]
         protected float m_dragDuration = .5f;
@@ -34,13 +41,15 @@ namespace DynamicUI
         Vector2 m_pressedItemPos;
         Vector2 m_pressedPointerPos;
 
+        public event System.Action<object> onHolderPointerDown;
+        public event System.Action<object> onHolderPointerUp;
         public event System.Action onListChanged;
 
         List<Holder> m_backUpHolderList;
 
         RectTransform test;
 
-        public override void SetItems(Item[] itemList)
+        protected override void SetItems(object[] itemList)
         {
             test = new GameObject("Test").AddComponent<RectTransform>();
             test.SetParent(m_container);
@@ -57,7 +66,7 @@ namespace DynamicUI
         public void UndoDeletedItems()
         {
             m_itemHolders = new List<Holder>(m_backUpHolderList);
-            m_items = new Item[m_backUpHolderList.Count];
+            m_items = new object[m_backUpHolderList.Count];
             for (int i = 0; i < m_itemHolders.Count; i++)
             {
                 m_itemHolders[i].OnUndoDelete();
@@ -83,6 +92,18 @@ namespace DynamicUI
             draggedHolder.rectTransform.SetAsLastSibling();
             SetHoldersTargetPosition();
             m_moveingHoldersToPos = true;
+        }
+
+        public virtual void OnHolderPointerDown(object item)
+        {
+            if (onHolderPointerDown != null)
+                onHolderPointerDown(item);
+        }
+
+        public virtual void OnHolderPointerUp(object item)
+        {
+            if (onHolderPointerUp != null)
+                onHolderPointerUp(item);
         }
 
         void OnListChanged()
@@ -280,6 +301,8 @@ namespace DynamicUI
                 UndoDeletedItems();
             MoveHolderToPosition();
         }
+
+
 
         public virtual void OnItemPointerDown(object item)
         {

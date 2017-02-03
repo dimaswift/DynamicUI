@@ -7,8 +7,4 @@ using UnityEngine.UI;
 namespace DynamicUI
 {
 
-    public class DUIDynamicListHolder<Item> : DUIReordableItemHolder<Item>
-    {
-       
-    }
 }

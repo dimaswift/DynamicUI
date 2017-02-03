@@ -8,21 +8,17 @@ using UnityEngine.EventSystems;
 namespace DynamicUI
 {
     [RequireComponent(typeof(Image))]
-     public class DUINavigationHolder : DUIItemHolder<DUINavigationItem>, IPointerClickHandler
+     public class DUINavigationHolder : DUIItemHolder, IPointerClickHandler
      {
         public Image iconImage;
         public Text nameText;
 
-        public override void SetUp(DUINavigationItem item)
+        public override void SetUp(object item)
         {
             base.SetUp(item);
-            iconImage.sprite = item.icon;
-            nameText.text = item.screenName;
-        }
-
-        public void OnPointerClick(PointerEventData data)
-        {
-            item.screen.Show();
+            var navItem = item as DUINavigationItem;
+            iconImage.sprite = navItem.icon;
+            nameText.text = Local.Translate(navItem.screenName);
         }
     }
 

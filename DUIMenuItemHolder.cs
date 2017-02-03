@@ -8,22 +8,24 @@ using System;
 
 namespace DynamicUI
 {
-    public class DUIMenuItemHolder : DUIItemHolder<DUIMenuItem>
+    public class DUIMenuItemHolder : DUIItemHolder
     {
         public Button button;
         public Image icon;
         public Text nameText;
 
-        public override void SetUp(DUIMenuItem item)
+        public override void SetUp(object item)
         {
-            button.onClick.AddListener(item.OnItemPress);
-            icon.sprite = item.sprite;
-            nameText.text = item.name;
+            base.SetUp(item);
+            var menuItem = item as IMenuItem;
+            button.onClick.AddListener(menuItem.OnPress);
+            icon.sprite = menuItem.sprite;
+            nameText.text = menuItem.name;
         }
     }
 
     [System.Serializable]
-    public class DUIMenuItem
+    public class DUIMenuItem : IMenuItem
     {
         [SerializeField]
         string m_name;
@@ -38,7 +40,7 @@ namespace DynamicUI
 
         public UnityEvent onPress { get { return m_onPress; } }
 
-        public void OnItemPress()
+        public void OnPress()
         {
             onPress.Invoke();
         }

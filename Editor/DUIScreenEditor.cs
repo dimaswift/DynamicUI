@@ -126,9 +126,10 @@ namespace DynamicUI
         }
         static void UpdateElementsBindings(Component screen)
         {
-            ComponentCellContainer.Instance.operationType = ComponentCellContainer.OperationType.Update;
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);
-            string scriptFilePath = scriptsFolder + screen.name + ".cs";
+
+            ComponentPickerContainer.Instance.operationType = ComponentPickerContainer.OperationType.Update;
+            EditorUtility.SetDirty(ComponentPickerContainer.Instance);
+            string scriptFilePath = screen.GetComponent<MonoBehaviour>().GetScriptPath();
             if (File.Exists(scriptFilePath))
             {
                 var classString = File.ReadAllText(scriptFilePath);
@@ -143,8 +144,8 @@ namespace DynamicUI
                     return;
                 }
 
-                ComponentCellContainer.Instance.pendingClass = elementClass;
-                ElementsConfirmationWindow.Open(SubmitUpdatedComponents, FilterDuplicateElements(screen), screen.gameObject);
+                ComponentPickerContainer.Instance.pendingClass = elementClass;
+                ComponentPicker.Open(SubmitUpdatedComponents, FilterDuplicateElements(screen), screen.gameObject);
 
                 return;
             }
@@ -175,8 +176,8 @@ namespace DynamicUI
         [MenuItem("CONTEXT/RectTransform/Create DUIScreen")]
         static void CreateScreenScript(MenuCommand item)
         {
-            ComponentCellContainer.Instance.operationType = ComponentCellContainer.OperationType.Create;
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);
+            ComponentPickerContainer.Instance.operationType = ComponentPickerContainer.OperationType.Create;
+            EditorUtility.SetDirty(ComponentPickerContainer.Instance);
             var g = item.context as RectTransform;
             GenerateCode(g.gameObject, CreateScreenClass(g.gameObject), FilterComponents(g.gameObject));
         }
@@ -233,13 +234,13 @@ namespace DynamicUI
             hideMethod.AddLine("m_" + lowerCaseName + ".HideImmediately();");
 
             SaveUIScreenScript(parser.ToString());
-            var binding = new ComponentCellContainer.ScreenBinding();
+            var binding = new ComponentPickerContainer.ScreenBinding();
 
             binding.targetGameObjectID = screen.gameObject.GetInstanceID();
             binding.fieldName = "m_" + lowerCaseName;
             binding.screenName = type;
-            ComponentCellContainer.Instance.screenBindings.Add(binding);
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);
+            ComponentPickerContainer.Instance.screenBindings.Add(binding);
+            EditorUtility.SetDirty(ComponentPickerContainer.Instance);
         }
 
         public static void SaveUIScreenScript(string body)
@@ -280,8 +281,8 @@ namespace DynamicUI
             }
 
 
-            ComponentCellContainer.Instance.pendingClass = elementsClass;
-            ElementsConfirmationWindow.Open(SubmitComponents, components, screen);
+            ComponentPickerContainer.Instance.pendingClass = elementsClass;
+            ComponentPicker.Open(SubmitComponents, components, screen);
         }
 
 
@@ -401,22 +402,23 @@ namespace DynamicUI
         [UnityEditor.Callbacks.DidReloadScripts]
         private static void OnScriptsReloaded()
         {
+            return;
             if (!File.Exists(uiScreensScriptsPath))
                 SaveUIScreenScript(CreateUIScreensClass().ToString());
-            var container = ComponentCellContainer.Instance;
-            GameObject screen = EditorUtility.InstanceIDToObject(container.screenID) as GameObject;
+            var container = ComponentPickerContainer.Instance;
+            GameObject screen = EditorUtility.InstanceIDToObject(container.targetID) as GameObject;
             if (container.pendingScriptCompile)
             {
                 container.pendingScriptCompile = false;
 
 
-                if (container.operationType == ComponentCellContainer.OperationType.Create)
+                if (container.operationType == ComponentPickerContainer.OperationType.Create)
                 {
                     var newPannel = screen.AddComponent(Helper.GetType(AppendNamespace(container.newTypeName)));
                     BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
                     AddScreen(new MenuCommand(newPannel));
                 }
-                else if (container.operationType == ComponentCellContainer.OperationType.Update)
+                else if (container.operationType == ComponentPickerContainer.OperationType.Update)
                 {
                     var newPannel = screen.GetComponent(Helper.GetType(AppendNamespace(container.newTypeName)));
                     BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
@@ -490,7 +492,7 @@ namespace DynamicUI
 
         public static void BindElements(SerializedProperty obj)
         {
-            var container = ComponentCellContainer.Instance;
+            var container = ComponentPickerContainer.Instance;
             var fields = container.cells;
 
 
@@ -560,7 +562,7 @@ namespace DynamicUI
 
         public static void SubmitUpdatedComponents(List<ComponentCell> components, GameObject screen)
         {
-            var elementsClass = ComponentCellContainer.Instance.pendingClass;
+            var elementsClass = ComponentPickerContainer.Instance.pendingClass;
 
             var bindMethod = new Method("void", "Bind", "", "public", "", new Method.Parameter(screen.name, "screen"));
             bindMethod.AddLine("#if UNITY_EDITOR");
@@ -586,11 +588,11 @@ namespace DynamicUI
             string scriptFilePath = scriptsFolder + screen.name + ".cs";
             var hasNameSpace = string.IsNullOrEmpty(DUISettings.Instance.Namespace) == false;
             File.WriteAllText(scriptFilePath, ReplaceRegion(File.ReadAllText(scriptFilePath), "Elements", elementsClass.ToString(hasNameSpace ? 2 :1)));
-            var container = ComponentCellContainer.Instance;
+            var container = ComponentPickerContainer.Instance;
             container.pendingScriptCompile = true;
             container.newTypeName = screen.name;
-            container.screenID = screen.GetInstanceID();
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);
+            container.targetID = screen.GetInstanceID();
+            EditorUtility.SetDirty(ComponentPickerContainer.Instance);
             Undo.RecordObject(screen.gameObject, "Screen");
 
             EditorUtility.SetDirty(screen);
@@ -599,7 +601,7 @@ namespace DynamicUI
 
         public static void SubmitComponents(List<ComponentCell> components, GameObject screen)
         {
-            var mainClass = ComponentCellContainer.Instance.pendingClass;
+            var mainClass = ComponentPickerContainer.Instance.pendingClass;
             Class elementsClass = mainClass.members.Find(e => e.name == "Elements" && e is Class) as Class;
             var initMethod = mainClass.members.Find(m => m.name == "Init") as Method;
             var bindMethod = new Method("void", "Bind", "", "public", "", new Method.Parameter(mainClass.name, "screen"));
@@ -624,14 +626,14 @@ namespace DynamicUI
             }
             string scriptFilePath = scriptsFolder + screen.name + ".cs";
             File.WriteAllText(scriptFilePath, mainClass.ToString());
-            var container = ComponentCellContainer.Instance;
+            var container = ComponentPickerContainer.Instance;
             container.pendingScriptCompile = true;
             container.newTypeName = mainClass.name;
-            container.screenID = screen.gameObject.GetInstanceID();
+            container.targetID = screen.gameObject.GetInstanceID();
             var hasNameSpace = string.IsNullOrEmpty(DUISettings.Instance.Namespace) == false;
             container.elementsClassString = elementsClass.ToString(hasNameSpace ? 2 : 1);
 
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);
+            EditorUtility.SetDirty(ComponentPickerContainer.Instance);
             Undo.RecordObject(screen.gameObject, "Screen");
 
             EditorUtility.SetDirty(screen);
@@ -659,183 +661,7 @@ namespace DynamicUI
         }
     }
 
-    [System.Serializable]
-    public class ComponentCell
-    {
-        public Component component { get { return EditorUtility.InstanceIDToObject(componentID) as Component; } }
-        public int componentID;
-        public bool selected;
-        public string objectName;
-        public string fieldName;
-        public string type; 
-        public int depth;
+  
 
-        public ComponentCell(Component c, GameObject screen)
-        {
-
-            componentID = c.GetInstanceID();
-            var t = c.GetType().ToString().Split('.');
-            type = t[t.Length - 1];
-            objectName = component.name;
-            selected = true;
-            fieldName = System.Text.RegularExpressions.Regex.Replace(component.name, @"[\s*\(\)-]", "");
-            fieldName = char.ToLowerInvariant(fieldName[0]) + fieldName.Substring(1);
-            var parent = c.transform.parent;
-            while (parent != null && parent != screen.transform)
-            {
-                depth++;
-                parent = parent.parent;
-            }
-        }
-    }
-
-    public class ElementsConfirmationWindow : EditorWindow
-    {
-        Vector2 scrollPos;
-        System.Action<List<ComponentCell>, GameObject> onSubmit;
-        float cellSize = 40;
-        GUIStyle typeLabel;
-        GameObject screen;
-
-        public static void Open(System.Action<List<ComponentCell>, GameObject> onSubmit, List<Component> components, GameObject screen)
-        {
-            var w = GetWindow<ElementsConfirmationWindow>(true, "Select Elements you want", true);
-            w.screen = screen;
-            w.Show(true);
-            w.minSize = new Vector2(600, 600);
-            w.maxSize = new Vector2(600, 600);
-            HandyEditor.CenterOnMainWin(w);
-            w.onSubmit = onSubmit;
-            var container = ComponentCellContainer.Instance;
-            container.cells.Clear();
-            foreach (var c in components)
-            {
-                container.cells.Add(new ComponentCell(c, screen));
-            }
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);
-            Undo.undoRedoPerformed += w.OnUndo;
-        }
-
-        void OnDisable()
-        {
-            Undo.undoRedoPerformed -= OnUndo;
-        }
-
-        void OnEnable()
-        {
-            typeLabel = new GUIStyle() { alignment = TextAnchor.MiddleRight, fontStyle = FontStyle.Bold };
-        }
-
-        void OnGUI()
-        {
-            Undo.RecordObject(ComponentCellContainer.Instance, "Components Container");
-            var cells = ComponentCellContainer.Instance.cells;
-            float scrollViewSize = position.height - 120;
-            var rect = new Rect(5, 5, position.width - 10, scrollViewSize);
-            GUI.Box(rect, "Found " + cells.Count + " elements:", EditorStyles.boldLabel);
-            var scrollView = new Rect(rect.x, 20, position.width - 25, (cellSize * cells.Count) + 45);
-            scrollPos = GUI.BeginScrollView(new Rect(5, 20, rect.width, rect.height), scrollPos, scrollView, false, true);
-
-            rect.y += 20;
-            var elementRect = rect;
-            elementRect.width = scrollView.width;
-            for (int i = 0; i < cells.Count; i++)
-            {
-                var cell = cells[i];
-                DrawComponent(cell, ref elementRect);
-            }
-            GUI.EndScrollView();
-
-
-            if (GUI.Button(new Rect(rect.x, position.height - 100, rect.width, 20), "Add Type To Names"))
-            {
-                AddTypeToNames();
-            }
-            if (GUI.Button(new Rect(rect.x, position.height - 75, rect.width, 20), "Remove Duplicates"))
-            {
-                RemoveDuplicates();
-            }
-            if (GUI.Button(new Rect(rect.x, position.height - 50, rect.width, 20), "Remove All"))
-            {
-                Undo.RecordObject(ComponentCellContainer.Instance, "Components Container");
-                cells.ForEach(c => c.selected = false);
-                EditorUtility.SetDirty(ComponentCellContainer.Instance);
-            }
-            if (GUI.Button(new Rect(rect.x, position.height - 25, rect.width, 20), "Submit"))
-            {
-                Submit();
-            }
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);
-        }
-
-        void AddTypeToNames()
-        {
-            Undo.RecordObject(ComponentCellContainer.Instance, "Components Container");
-            var cells = ComponentCellContainer.Instance.cells;
-            foreach (var cell in cells)
-            {
-                cell.fieldName += cell.type;
-            }
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);
-        }
-
-        void RemoveDuplicates()
-        {
-            Undo.RecordObject(ComponentCellContainer.Instance, "Components Container");
-            var cells = ComponentCellContainer.Instance.cells;
-            foreach (var cell in cells)
-            {
-                foreach (var cell2 in cells)
-                {
-                    if (cell2.selected && cell.selected && cell.fieldName == cell2.fieldName &&
-                        cell.component != cell2.component)
-                    {
-                        if (cell.type == "Image" && cell2.type == "Button")
-                            cell.selected = false;
-                        else if (cell2.type == "Image" && cell.type == "Button")
-                            cell2.selected = false;
-                        else if (cell.type == "RectTransform" && cell2.type == "Image")
-                            cell2.selected = false;
-                        else if (cell.type == "RectTransform" && cell2.type == "Text")
-                            cell.selected = false;
-                        else if (cell.type == "RectTransform" && cell2.type == "Button")
-                            cell.selected = false;
-                    }
-                }
-            }
-            EditorUtility.SetDirty(ComponentCellContainer.Instance);
-        }
-
-        void OnUndo()
-        {
-            Repaint();
-        }
-
-        void Submit()
-        {
-            ComponentCellContainer.Instance.cells.RemoveAll(c => c.selected == false);
-            onSubmit(ComponentCellContainer.Instance.cells, screen);
-            Close();
-        }
-
-        bool DrawComponent(ComponentCell c, ref Rect rect)
-        {
-            rect.y += 15;
-            var color = GUI.color;
-            float depth = c.depth * 15;
-            GUI.color = c.selected ? Color.green.SetAlpha(.3f) : Color.red.SetAlpha(.3f);
-            GUI.enabled = c.selected;
-            GUI.Box(new Rect(rect.x + depth, rect.y, rect.width, cellSize - 3), "");
-            GUI.color = color;
-
-            c.fieldName = GUI.TextField(new Rect(rect.x + depth + 5, rect.y + 8, 200, 22), c.fieldName, EditorStyles.largeLabel);
-            //  GUI.Label(new Rect(rect.x + depth, rect.y + 18, 300, 16), c.component.name, EditorStyles.miniLabel);
-            GUI.Label(new Rect(rect.width - 35, rect.y + 8, 5, 16), string.Format("{0} ({1})", c.component.name, c.type), typeLabel);
-            GUI.enabled = true;
-            c.selected = GUI.Toggle(new Rect(rect.width - 20, rect.y + 10, 20, 20), c.selected, "");
-            rect.y += cellSize - 15;
-            return c.selected;
-        }
-    }
 
 }

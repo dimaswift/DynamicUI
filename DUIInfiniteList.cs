@@ -6,9 +6,13 @@ using UnityEngine.UI;
 
 namespace DynamicUI
 {
-    public class DUIInfiniteList<ItemHolder, Item> : DUIList<ItemHolder, Item>
-        where ItemHolder : DUIItemHolder<Item>
-        where Item : DUIInfiniteListItem
+    public interface ISelectable
+    {
+        bool selected { get; }
+    }
+
+    public class DUIInfiniteList<ItemHolder> : DUIList<ItemHolder>, IDUIList
+        where ItemHolder : DUIItemHolder
     {
 
         protected int m_cellIndex;
@@ -19,7 +23,7 @@ namespace DynamicUI
         public override void Init(DUICanvas canvas)
         {
             if (m_initialized) return;
-            m_itemHolderPrefab.Init();
+            m_itemHolderPrefab.Init(this);
             base.Init(canvas);
             scrollRect.onValueChanged.AddListener(OnScroll);
         
@@ -32,8 +36,14 @@ namespace DynamicUI
             base.EditorSetUp();
         }
 
-        public override void SetItems(Item[] itemList)
+        public virtual void OnHolderClick(object holder)
         {
+
+        }
+
+        public void SetItems<T>(T[] itemList) where T : class, ISelectable
+        {
+            base.SetItems(itemList);
             var totalHeight = 0f;
             var holderHeight = m_itemHolderPrefab.rectTransform.sizeDelta.y;
             m_cellCount = (int) (m_container.sizeDelta.y / holderHeight) + 4;
@@ -44,7 +54,7 @@ namespace DynamicUI
             {
                 var item = itemList[i];
                 var itemHolder = i > itemHolders.Count - 1 ? Instantiate(m_itemHolderPrefab) : itemHolders[i];
-                itemHolder.Init();
+                itemHolder.Init(this);
                 if (itemHolder.selectable)
                     itemHolder.selectable.SetSelectedImmediately(item.selected);
                 itemHolder.index = i;
@@ -105,7 +115,7 @@ namespace DynamicUI
                         firstCell.rectTransform.anchoredPosition = lastCell.rectTransform.anchoredPosition - (Vector2.up * cellHeight);
                         firstCell.SetUp(items[m_cellCount + m_cellIndex - 1]);
                         if (firstCell.selectable)
-                            firstCell.selectable.SetSelectedImmediately(firstCell.item.selected);
+                            firstCell.selectable.SetSelectedImmediately(((ISelectable) firstCell.item).selected);
                         itemHolders.RemoveAt(0);
                         itemHolders.Add(firstCell);
                     }
@@ -130,7 +140,7 @@ namespace DynamicUI
                         lastCell.rectTransform.anchoredPosition = firstCell.rectTransform.anchoredPosition + (Vector2.up * cellHeight);
                         lastCell.SetUp(items[m_cellIndex]);
                         if (lastCell.selectable)
-                            lastCell.selectable.SetSelectedImmediately(lastCell.item.selected);
+                            lastCell.selectable.SetSelectedImmediately(((ISelectable) lastCell.item).selected);
                         itemHolders.RemoveAt(m_cellCount - 1);
                         itemHolders.Insert(0, lastCell);
                     }

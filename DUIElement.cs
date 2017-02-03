@@ -28,6 +28,9 @@
         protected RectTransform m_rectTransform = null;
         protected DUICanvas m_parentCanvas;
 
+        public event System.Action onShow;
+        public event System.Action onHide;
+
         public DUICanvas parentCanvas
         {
             get { return m_parentCanvas; }
@@ -85,6 +88,8 @@
         {
             if (!m_visible)
             {
+                if (onShow != null)
+                    onShow();
                 SetActive(true);
                 m_visible = true;
             }
@@ -106,7 +111,8 @@
         {
             if (m_visible)
             {
-                OnScreenWillHideAnimated();
+                if (onHide != null)
+                    onHide();
                 m_visible = false;
                 if (m_disableOnHide)
                     SetActive(false);

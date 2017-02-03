@@ -7,11 +7,11 @@ using UnityEngine.EventSystems;
 
 namespace DynamicUI
 {
-    public class DUIReordableItemHolder<T> : DUIItemHolder<T>, IPointerDownHandler, IPointerUpHandler
+    public class DUIReordableItemHolder : DUIItemHolder, IPointerDownHandler, IPointerUpHandler, IPointerClickHandler
     {
         public bool isDragging { get; private set; }
 
-        DUIReordableListBridge m_list;
+        IDUIListExtended m_list;
 
         public Vector2 positionInList { get; set; }
 
@@ -19,25 +19,26 @@ namespace DynamicUI
 
         public bool isRedyToBeDeleted { get; set; }
 
-        public void SetParentList(DUIReordableListBridge list)
+        public void SetParentList(IDUIListExtended list)
         {
             m_list = list;
         }
+
         public virtual void OnPointerDown(PointerEventData data)
         {
-            m_list.OnItemPointerDown(this);
+            m_list.OnHolderPointerDown(this);
             isDragging = true;
         }
 
         public virtual void OnPointerUp(PointerEventData data)
         {
-            m_list.OnItemPointerUp(this);
+            m_list.OnHolderPointerUp(this);
             isDragging = false;
         }
 
         public virtual void OnReadyToBeDeleted(bool readyToBeDeleted)
         {
-
+            
         }
 
         public virtual void OnUndoDelete()

@@ -8,7 +8,7 @@ namespace DynamicUI
 {
     [ExecuteInEditMode]
     [RequireComponent(typeof(ScrollRect), typeof(RectTransform))]
-    public abstract class DUIList<ItemHolder, Item> : DUIElement where ItemHolder : DUIItemHolder<Item>
+    public abstract class DUIList<ItemHolder> : DUIElement, IDUIList where ItemHolder : DUIItemHolder
     {
         [SerializeField]
         protected ItemHolder m_itemHolderPrefab;
@@ -17,15 +17,17 @@ namespace DynamicUI
         [SerializeField]
         [HideInInspector]
         protected bool m_hasBeenSetUp;
-        [SerializeField]
-        protected Item[] m_items;
+
+        protected object[] m_items;
         [SerializeField]
         [HideInInspector]
         protected ScrollRect m_scroll;
 
         protected List<ItemHolder> m_itemHolders = new List<ItemHolder>();
 
-        public Item[] items { get { return m_items; } }
+        public event System.Action<ItemHolder> onItemSetUp;
+        public event System.Action<ItemHolder> onHolderClicked;
+        public object[] items { get { return m_items; } }
         public List<ItemHolder> itemHolders { get { return m_itemHolders; } }
         public ScrollRect scrollRect { get { return m_scroll; } }
         protected float m_canvasScale;
@@ -52,8 +54,7 @@ namespace DynamicUI
                 base.Init(canvas);
                 if (m_itemHolderPrefab == null)
                     m_itemHolderPrefab = GetComponentInChildren<ItemHolder>();
-                m_itemHolderPrefab.Init();
-                SetItems(m_items);
+                m_itemHolderPrefab.Init(this);
                 Invoker.Add(CalculateCanvasSize, .1f);
             }
         }
@@ -73,9 +74,21 @@ namespace DynamicUI
 #endif  
         }
 
+        public virtual void OnHolderClick(object holder)
+        {
+            if (onHolderClicked != null)
+                onHolderClicked(holder as ItemHolder);
+        }
+
+        public virtual void OnItemSetUp(object holder)
+        {
+            if (onHolderClicked != null)
+                onItemSetUp(holder as ItemHolder);
+        }
+
         public virtual void OnItemHolderSetUp(ItemHolder holder, int index) { }
 
-        public virtual void SetItems(Item[] itemList)
+        protected virtual void SetItems(object[] itemList) 
         {
             m_itemHolderPrefab.gameObject.SetActive(false);
             m_items = itemList;
@@ -98,7 +111,7 @@ namespace DynamicUI
             {
                 var item = itemList[i];
                 var itemHolder = i < m_itemHolders.Count ? m_itemHolders[i] : Instantiate(m_itemHolderPrefab);
-                itemHolder.Init();
+                itemHolder.Init(this);
                 itemHolder.index = i;
                 OnItemHolderSetUp(itemHolder, i);
                 itemHolder.gameObject.SetActive(true);

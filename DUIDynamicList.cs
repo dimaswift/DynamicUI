@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace DynamicUI
 {
-     public class DUIDynamicList<Holder, Item> : DUIReordableList<Holder, Item> where Holder : DUIReordableItemHolder<Item>
+     public class DUIDynamicList<Holder> : DUIReordableList<Holder> where Holder : DUIReordableItemHolder
      {
         [SerializeField]
         Button m_addButton;
