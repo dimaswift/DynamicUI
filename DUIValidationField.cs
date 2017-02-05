@@ -40,6 +40,7 @@ namespace DynamicUI
 
         public void Clear()
         {
+            inputField.text = "";
             m_errorText.CrossFadeAlpha(0, 0, true);
             m_successIcon.CrossFadeAlpha(0, 0, true);
         }
@@ -71,5 +72,17 @@ namespace DynamicUI
     {
         public bool isValid;
         public string errorMessage;
+
+        public Validator(bool isValid)
+        {
+            this.isValid = isValid;
+            errorMessage = "";
+        }
+
+        public Validator(bool isValid, string errorMessage)
+        {
+            this.isValid = isValid;
+            this.errorMessage = errorMessage;
+        }
     }
 }

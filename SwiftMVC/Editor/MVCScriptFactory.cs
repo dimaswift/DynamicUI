@@ -99,12 +99,27 @@ namespace {0}
 ";
         }
 
-        [MenuItem("CONTEXT/RectTransform/Create View")]
+        [MenuItem("CONTEXT/RectTransform/Create View-Controller Pair")]
         static void CreateViewCommand(MenuCommand c)
         {
             var target = c.context as RectTransform;
             CreateViewControllerPair(target.name, target.gameObject);
         }
+
+        [MenuItem("CONTEXT/MonoBehaviour/Add Controller")]
+        static void CreateControllerCommand(MenuCommand c)
+        {
+            var target = c.context as MonoBehaviour;
+            AddController(target);
+        }
+
+        [MenuItem("CONTEXT/MonoBehaviour/Add View")]
+        static void AddViewReferenceCommand(MenuCommand c)
+        {
+            var target = c.context as MonoBehaviour;
+            AddView(target);
+        }
+
 
         [MenuItem("CONTEXT/RectTransform/Remove View")]
         static void RemoveViewCommand(MenuCommand c)
@@ -155,12 +170,13 @@ namespace {0}
         static void OnScriptsCompiled()
         {
             var settings = MVCProjectSettings.Instance;
-            if(settings.pendingViewCreation)
+            if(settings.isPendingViewControllerPair)
             {
                 var viewObject = EditorUtility.InstanceIDToObject(settings.pendingViewGameObjectID) as GameObject;
-                AddView(viewObject.AddComponent(Helper.GetType(settings.pendingViewClassName)) as MonoBehaviour);
-                settings.pendingViewCreation = false;
-
+                var view = viewObject.AddComponent(Helper.GetType(settings.pendingViewClassName)) as MonoBehaviour;
+                AddView(view);
+                AddController(view);
+                settings.isPendingViewControllerPair = false;
             }
         }
 
@@ -238,6 +254,27 @@ namespace {0}
             return cls;
         }
 
+        static void AddController(MonoBehaviour mono)
+        {
+            var script = MonoScript.FromMonoBehaviour(mono);
+            var controllerScriptName = script.name.Remove(script.name.Length - 4, 4) + "Controller";
+            Class controllerDelegateClass = GetControllersDelegateClass();
+            if (controllerDelegateClass.members.Find(m => m.type == controllerScriptName) != null)
+            {
+                Debug.LogWarning(string.Format("Controller {0} already added!", script.name));
+                return;
+            }
+            var fieldName = controllerScriptName.ToLowerFirst();
+            controllerDelegateClass.AddMember(new Field(controllerScriptName, "m_" + fieldName));
+            ((Method) controllerDelegateClass.members.Find(m => m.name == "Init"))
+                .AddLine(string.Format("m_{0} = new {1}(App.Views.{2});",
+                controllerScriptName.ToLowerFirst(),
+                controllerScriptName,
+                script.name.ToLowerFirst()));
+            controllerDelegateClass.AddMember(new Property(controllerScriptName, fieldName, "public", "m_" + fieldName, "").SetReadonly(true));
+            WriteControllersDelegateClass(controllerDelegateClass); 
+        }
+
         static void WriteControllersDelegateClass(Class cls)
         {
             var settings = MVCProjectSettings.Instance;
@@ -267,26 +304,14 @@ namespace {0}
             var settings = MVCProjectSettings.Instance;
 
             var viewScript = MonoScript.FromMonoBehaviour(view);
-            var controllerScriptName = viewScript.name.Remove(viewScript.name.Length - 4, 4) + "Controller";
 
             Class viewsDelegateClass = GetViewsDelegateClass();
-            Class controllerDelegateClass = GetControllersDelegateClass();
 
-           
-            if (controllerDelegateClass.members.Find(m => m.type == controllerScriptName) != null)
-            {
-                Debug.LogWarning(string.Format("Controller {0} already added!", viewScript.name));
-                return;
-            }
             if (viewsDelegateClass.members.Find(m => m.type == viewScript.name) != null)
             {
                 Debug.LogWarning(string.Format("View {0} already added!", viewScript.name));
                 return;
             }
-
-            controllerDelegateClass.AddMember(new Field(controllerScriptName, controllerScriptName.ToLowerFirst()));
-            ((Method) controllerDelegateClass.members.Find(m => m.name == "Init")).AddLine(string.Format("{0} = new {1}(App.Views.{2});", controllerScriptName.ToLowerFirst(), controllerScriptName, viewScript.name.ToLowerFirst()));
-
 
             var type = viewScript.name;
             var lowerCaseName = type[0].ToString().ToLower() + type.Substring(1);
@@ -300,7 +325,6 @@ namespace {0}
             hideMethod.AddLine("m_" + lowerCaseName + ".HideImmediately();");
 
             WriteViewsDelegateClass(viewsDelegateClass);
-            WriteControllersDelegateClass(controllerDelegateClass);
 
             AssetDatabase.Refresh();
         }
@@ -356,6 +380,13 @@ namespace {0}.Controller
     public abstract class Controller<T> where T : DUIScreen
     {{
         public T view {{ get; protected set; }}
+        public App app { get { return App.Instance; } }
+
+        public Controller(T view)
+        {{
+            this.view = view;
+            AddEventListeners();
+        }}
 
         public virtual void AddEventListeners()
         {{
@@ -363,12 +394,6 @@ namespace {0}.Controller
         }}
 
         public virtual void OnShow() {{ }}
-
-        public Controller(T screen)
-        {{
-            this.view = screen;
-            AddEventListeners();
-        }}
     }}
 }}", nameSpace);
                 File.WriteAllText(baseControllerScriptPath, baseControllerScript);
@@ -387,7 +412,7 @@ namespace {1}.Controller
 {{
     public class {0}Controller : Controller<{0}View>
     {{
-        public {0}Controller({0}View screen) : base(screen)
+        public {0}Controller({0}View view) : base(view)
         {{
 
         }}
@@ -432,7 +457,7 @@ namespace {0}.View
                     return;
             }
             settings.pendingViewClassName = nameSpace + "." + "View." + name + "View";
-            settings.pendingViewCreation = true;
+            settings.isPendingViewControllerPair = true;
             settings.pendingViewGameObjectID = target.GetInstanceID();
             EditorUtility.SetDirty(settings);
 

@@ -9,8 +9,9 @@ namespace DynamicUI
 {
 
   //  [CustomEditor(typeof(DUIScreen), true)]
-    public class DUIScreenEditor : Editor
-    {
+  //  public class DUIScreenEditor : Editor
+ //   {
+        /*
         static string uiScreensScriptsPath { get { return scriptsFolder + "Views.cs"; } }
         static string scriptsFolder { get { return Application.dataPath + "/" + DUISettings.Instance.UIRootFolder + "/"; } }
         public DUIScreen screen { get { return (DUIScreen) target; } }
@@ -282,7 +283,7 @@ namespace DynamicUI
 
 
             ComponentPickerContainer.Instance.pendingClass = elementsClass;
-            ComponentPicker.Open(SubmitComponents, components, screen);
+         //   ComponentPicker.Open(SubmitComponents, components, screen);
         }
 
 
@@ -492,7 +493,7 @@ namespace DynamicUI
         public static void BindElements(SerializedProperty obj)
         {
             var container = ComponentPickerContainer.Instance;
-            var fields = container.cells;
+            var fields = container.gameObjects;
 
 
             foreach (var f in fields)
@@ -559,7 +560,7 @@ namespace DynamicUI
             return regionString;
         }
 
-        public static void SubmitUpdatedComponents(List<ComponentCell> components, GameObject screen)
+        public static void SubmitUpdatedComponents(List<ComponentContainer> containers, GameObject screen)
         {
             var elementsClass = ComponentPickerContainer.Instance.pendingClass;
 
@@ -567,21 +568,27 @@ namespace DynamicUI
             bindMethod.AddLine("#if UNITY_EDITOR");
             bindMethod.AddLine("var root = screen.transform;");
             bindMethod.AddLine(@"var so = new UnityEditor.SerializedObject(screen).FindProperty(""m_elements"");");
-
-            foreach (var c in components)
+            foreach (var cont in containers)
             {
-                var f = CreateField(c);
-                elementsClass.AddMember(f);
-                bindMethod.AddLine(string.Format(@"so.FindPropertyRelative(""{0}"").objectReferenceValue = root.FindChild(""{1}"").GetComponent<{2}>();", f.name, c.component.transform.GetPath(screen.transform), f.type));
+                foreach (var c in cont.components)
+                {
+                    var f = CreateField(c);
+                    elementsClass.AddMember(f);
+                    bindMethod.AddLine(string.Format(@"so.FindPropertyRelative(""{0}"").objectReferenceValue = root.FindChild(""{1}"").GetComponent<{2}>();", f.name, c.component.transform.GetPath(screen.transform), f.type));
+                }
             }
+           
             bindMethod.AddLine("so.serializedObject.ApplyModifiedProperties();");
             bindMethod.AddLine("UnityEditor.EditorUtility.SetDirty(screen);");
             bindMethod.AddLine("#endif");
             elementsClass.AddMember(bindMethod);
-            foreach (var c in components)
+            foreach (var cont in containers)
             {
-                var p = CreateProperty(c);
-                elementsClass.AddMember(p);
+                foreach (var c in cont.components)
+                {
+                    var p = CreateProperty(c);
+                    elementsClass.AddMember(p);
+                }
             }
 
             string scriptFilePath = scriptsFolder + screen.name + ".cs";
@@ -662,6 +669,6 @@ namespace DynamicUI
     }
 
   
-
+    */
 
 }
