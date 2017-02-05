@@ -30,9 +30,10 @@ namespace DynamicUI
                     args[1] as string,
                     args[2] as string,
                     args[3] as string);
-            }, new ConfirmationTool.Label("List Class Name", "MyList"),
-             new ConfirmationTool.Label("Holder Class Name", "MyListHolder"),
-              new ConfirmationTool.Label("Item Class Name", "MyListItem"),
+            }, 
+            new ConfirmationTool.Label("List Class Name", "MyList"),
+            new ConfirmationTool.Label("Holder Class Name", "MyListHolder"),
+            new ConfirmationTool.Label("Item Class Name", "MyListItem"),
             new ConfirmationTool.Label("Namespace"));
         }
 

@@ -8,10 +8,10 @@ using HandyUtilities;
 namespace DynamicUI
 {
 
-    [CustomEditor(typeof(DUIScreen), true)]
+  //  [CustomEditor(typeof(DUIScreen), true)]
     public class DUIScreenEditor : Editor
     {
-        static string uiScreensScriptsPath { get { return scriptsFolder + "UIScreens.cs"; } }
+        static string uiScreensScriptsPath { get { return scriptsFolder + "Views.cs"; } }
         static string scriptsFolder { get { return Application.dataPath + "/" + DUISettings.Instance.UIRootFolder + "/"; } }
         public DUIScreen screen { get { return (DUIScreen) target; } }
 
@@ -80,7 +80,7 @@ namespace DynamicUI
             new ConfirmationTool.Label("Class Name", "DUINewScript"));
         }
 
-        [MenuItem("Dynamic UI/Create UI Manager")]
+    //    [MenuItem("Dynamic UI/Create MVC View Container")]
         public static void CreateUIManager()
         {
             ConfirmationTool.OpenWithArguments("Enter Name", "Create", (args) =>
@@ -102,8 +102,8 @@ namespace DynamicUI
 
                 cls.AddDirective("UnityEngine", "DynamicUI", "HandyUtilities");
                 cls.AddMember(new Field(name, "m_instance", "", "static").AddAttributes("SerializeField"));
-                cls.AddMember(new Field("UIScreens", "m_screens").AddAttributes("SerializeField"));
-                cls.AddMember(new Property("UIScreens", "screens", "public", "m_instance.m_screens", "static").SetReadonly(true));
+                cls.AddMember(new Field("Views", "m_screens").AddAttributes("SerializeField"));
+                cls.AddMember(new Property("Views", "views", "public", "m_instance.m_views", "static").SetReadonly(true));
                 cls.AddMember(new Method("void", "Start", "", "", "").AddLine("m_instance = this;").AddLine("Init();"));
                 cls.AddMember(new Method("void", "Init", "override", "public", "").AddLine("base.Init();").AddLine("screens.Init(this);"));
                 var ft = File.CreateText(scriptsFolder + name + ".cs");
@@ -173,7 +173,7 @@ namespace DynamicUI
         }
 
 
-        [MenuItem("CONTEXT/RectTransform/Create DUIScreen")]
+    //    [MenuItem("CONTEXT/RectTransform/Create DUIScreen")]
         static void CreateScreenScript(MenuCommand item)
         {
             ComponentPickerContainer.Instance.operationType = ComponentPickerContainer.OperationType.Create;
@@ -639,6 +639,7 @@ namespace DynamicUI
             EditorUtility.SetDirty(screen);
             AssetDatabase.ImportAsset(Helper.ConvertLoRelativePath(scriptFilePath));
         }
+
 
         static Field CreateField(ComponentCell cell)
         {

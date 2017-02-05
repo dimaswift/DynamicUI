@@ -36,11 +36,6 @@ namespace DynamicUI
             base.EditorSetUp();
         }
 
-        public virtual void OnHolderClick(object holder)
-        {
-
-        }
-
         public void SetItems<T>(T[] itemList) where T : class, ISelectable
         {
             base.SetItems(itemList);
