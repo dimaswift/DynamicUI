@@ -41,7 +41,8 @@
 
         public void SetCurrentScreen(DUIScreen screen)
         {
-            m_backButton.gameObject.SetActive(currentScreen != null && screen.showBackButton);
+            if (m_backButton)
+                m_backButton.gameObject.SetActive(currentScreen != null && screen.showBackButton);
 
             if(screen.showedUsingBackButton == false)
                 screen.SetPrevScreen(currentScreen);

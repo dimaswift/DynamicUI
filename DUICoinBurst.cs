@@ -16,10 +16,6 @@ namespace DynamicUI
         [SerializeField]
         RandomFloatRange m_startBurstDuration = new RandomFloatRange(8, 12);
         [SerializeField]
-        float m_initialBurstSpeed = 3f;
-        [SerializeField]
-        AnimationCurve m_coinFlyCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
-        [SerializeField]
         int m_coinPoolSize = 10;
         [SerializeField]
         RectTransform m_coinPrefab;

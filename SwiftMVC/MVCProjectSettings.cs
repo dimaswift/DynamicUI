@@ -15,4 +15,9 @@ public class MVCProjectSettings : SerializedSingleton<MVCProjectSettings>
     public bool pendingViewCreation;
     [HideInInspector]
     public int pendingViewGameObjectID;
+    [HideInInspector]
+    public bool hasBeenSetUp;
+
+
+
 }

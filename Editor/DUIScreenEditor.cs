@@ -402,50 +402,49 @@ namespace DynamicUI
         [UnityEditor.Callbacks.DidReloadScripts]
         private static void OnScriptsReloaded()
         {
-            return;
-            if (!File.Exists(uiScreensScriptsPath))
-                SaveUIScreenScript(CreateUIScreensClass().ToString());
-            var container = ComponentPickerContainer.Instance;
-            GameObject screen = EditorUtility.InstanceIDToObject(container.targetID) as GameObject;
-            if (container.pendingScriptCompile)
-            {
-                container.pendingScriptCompile = false;
+            //if (!File.Exists(uiScreensScriptsPath))
+            //    SaveUIScreenScript(CreateUIScreensClass().ToString());
+            //var container = ComponentPickerContainer.Instance;
+            //GameObject screen = EditorUtility.InstanceIDToObject(container.targetID) as GameObject;
+            //if (container.pendingScriptCompile)
+            //{
+            //    container.pendingScriptCompile = false;
 
 
-                if (container.operationType == ComponentPickerContainer.OperationType.Create)
-                {
-                    var newPannel = screen.AddComponent(Helper.GetType(AppendNamespace(container.newTypeName)));
-                    BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
-                    AddScreen(new MenuCommand(newPannel));
-                }
-                else if (container.operationType == ComponentPickerContainer.OperationType.Update)
-                {
-                    var newPannel = screen.GetComponent(Helper.GetType(AppendNamespace(container.newTypeName)));
-                    BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
-                }
-            }
-            foreach (var binding in container.screenBindings)
-            {
+            //    if (container.operationType == ComponentPickerContainer.OperationType.Create)
+            //    {
+            //        var newPannel = screen.AddComponent(Helper.GetType(AppendNamespace(container.newTypeName)));
+            //        BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
+            //        AddScreen(new MenuCommand(newPannel));
+            //    }
+            //    else if (container.operationType == ComponentPickerContainer.OperationType.Update)
+            //    {
+            //        var newPannel = screen.GetComponent(Helper.GetType(AppendNamespace(container.newTypeName)));
+            //        BindElements(new SerializedObject(newPannel).FindProperty("m_elements"));
+            //    }
+            //}
+            //foreach (var binding in container.screenBindings)
+            //{
 
-                screen = EditorUtility.InstanceIDToObject(binding.targetGameObjectID) as GameObject;
+            //    screen = EditorUtility.InstanceIDToObject(binding.targetGameObjectID) as GameObject;
                  
-                var canvas = screen.GetComponentInParent(Helper.GetType(AppendNamespace(DUISettings.Instance.UIManagerClassName)));
-                if (canvas)
-                {
-                    var screenContainer = new SerializedObject(canvas).FindProperty("m_screens");
-                    var p = screenContainer.FindPropertyRelative(binding.fieldName);
-                    if (p == null) return;
-                    p.objectReferenceValue = screen.GetComponent(binding.screenName);
-                    screenContainer.serializedObject.ApplyModifiedProperties();
-                }
-                else
-                {
-                    Debug.Log(string.Format("{0}", "Please add UIManager.cs script first!"));
-                }
+            //    var canvas = screen.GetComponentInParent(Helper.GetType(AppendNamespace(DUISettings.Instance.UIManagerClassName)));
+            //    if (canvas)
+            //    {
+            //        var screenContainer = new SerializedObject(canvas).FindProperty("m_screens");
+            //        var p = screenContainer.FindPropertyRelative(binding.fieldName);
+            //        if (p == null) return;
+            //        p.objectReferenceValue = screen.GetComponent(binding.screenName);
+            //        screenContainer.serializedObject.ApplyModifiedProperties();
+            //    }
+            //    else
+            //    {
+            //        Debug.Log(string.Format("{0}", "Please add UIManager.cs script first!"));
+            //    }
 
-            }
-            container.screenBindings.Clear();
-            EditorUtility.SetDirty(container);
+            //}
+            //container.screenBindings.Clear();
+            //EditorUtility.SetDirty(container);
         }
 
         public static void AddEventListenersToClass(Class mainClass, ComponentCell c, Method initMethod)

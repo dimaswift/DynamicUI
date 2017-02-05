@@ -36,7 +36,7 @@
             m_hiddenPosition = GetHiddenPos();
             m_visiblePosition = m_resetPositionOnLoad ? Vector2.zero : rectTransform.anchoredPosition;
             if (m_resetPositionOnLoad)
-                Invoke("ResetPos", .5f);
+                ResetPos();
             m_visibleScale = rectTransform.localScale;
 
             if (HasAnamtionFlag(AnimationFlags.Alpha))

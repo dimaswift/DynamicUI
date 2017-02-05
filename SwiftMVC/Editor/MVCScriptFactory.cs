@@ -1,17 +1,103 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
 using HandyUtilities;
 using System.IO;
 using CodeGenerator;
-using DynamicUI;
 
 namespace SwiftMVC
 {
+    [CustomEditor(typeof(MVCProjectSettings))]
     public class MVCScriptFactory : Editor
     {
 
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+            var settings = target as MVCProjectSettings;
+            if (GUILayout.Button("Create Project Structure"))
+            {
+                var appString = string.Format(GetAppString(), settings.nameSpace);
+                var vewsDelegate = GetViewsDelegateClass();
+                var controllersDelegate = GetControllersDelegateClass();
+                var absoluteFolderPath = Helper.ConvertToAbsolutePath(settings.projectFolder);
+                if (Directory.Exists(absoluteFolderPath) == false)
+                    Directory.CreateDirectory(absoluteFolderPath);
+
+                Directory.CreateDirectory(absoluteFolderPath + "/Controllers");
+                Directory.CreateDirectory(absoluteFolderPath + "/Views");
+                Directory.CreateDirectory(absoluteFolderPath + "/Model");
+
+                WriteControllersDelegateClass(controllersDelegate);
+                WriteViewsDelegateClass(vewsDelegate);
+                File.WriteAllText(absoluteFolderPath + "/App.cs", appString);
+                File.WriteAllText(absoluteFolderPath + "/Model/DummyData.cs", string.Format(GetDummyModelScript(), settings.nameSpace));
+                AssetDatabase.Refresh();
+            }
+        }
+
+        static string GetDummyModelScript()
+        {
+            return @"
+namespace {0}.Model
+{{
+    public class {0}Data
+    {{
+        public string dataExample = ""Hello World"";
+    }}
+}}
+";
+        }
+
+        static string GetAppString()
+        {
+            return @"using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using HandyUtilities;
+
+using {0}.Model;
+using {0}.View;
+using {0}.Controller;
+
+namespace {0}
+{{
+    public class App : MonoBehaviour
+    {{
+        static App m_isntance;
+
+        ViewsDelegate m_viewsDelegate;
+
+        ControllersDelegate m_controllersDelegate;
+
+        public static App Instance {{ get {{ return m_isntance; }} }}
+
+        public static ViewsDelegate Views {{ get {{ return m_isntance.m_viewsDelegate; }} }}
+
+        public static ControllersDelegate Controllers {{ get {{ return m_isntance.m_controllersDelegate; }} }}
+
+        void Start()
+        {{
+            m_isntance = this;
+            Init();
+        }}
+
+        void Init()
+        {{
+            m_viewsDelegate = FindObjectOfType<ViewsDelegate>();
+            if(m_viewsDelegate == null) 
+            {{
+                Debug.LogError(""ViewsDelegate Object not found in the scene. Attach ViewsDelegate component to the root Canvas!""); 
+                return;
+            }}
+            m_viewsDelegate.Init();
+            m_viewsDelegate.HideAll();
+            m_controllersDelegate = new ControllersDelegate();
+            m_controllersDelegate.Init();
+        }}
+    }}
+}}
+";
+        }
 
         [MenuItem("CONTEXT/RectTransform/Create View")]
         static void CreateViewCommand(MenuCommand c)
@@ -27,7 +113,7 @@ namespace SwiftMVC
                 return;
             var settings = MVCProjectSettings.Instance;
             var target = c.context as RectTransform;
-            var mono = target.GetComponent<MonoBehaviour>();
+
             var projectPath = Helper.ConvertToAbsolutePath(MVCProjectSettings.Instance.projectFolder);
             var controller = projectPath + "/Controllers/" + target.name + "Controller.cs";
             File.Delete(controller);
@@ -102,6 +188,11 @@ namespace SwiftMVC
         {
             var n = t.ToString().Split('.');
             return n[n.Length - 1];
+        }
+
+        static void SetUpProject()
+        {
+
         }
 
         static Class GetViewsDelegateClass()

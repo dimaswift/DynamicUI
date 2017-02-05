@@ -151,8 +151,6 @@ namespace {2}
 
             var holderObject = listObject.transform.FindChild("container/holder");
 
-            var container = listObject.transform.FindChild("container");
-
             listObject.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
             var listType = string.IsNullOrEmpty(nameSpace) ? listName : nameSpace + "." + listName;
             var holderType = string.IsNullOrEmpty(nameSpace) ? holderName : nameSpace + "." + holderName;
