@@ -8,41 +8,8 @@ using HandyUtilities;
 namespace DynamicUI
 {
 
-  //  [CustomEditor(typeof(DUIScreen), true)]
-  //  public class DUIScreenEditor : Editor
- //   {
-        /*
-        static string uiScreensScriptsPath { get { return scriptsFolder + "Views.cs"; } }
-        static string scriptsFolder { get { return Application.dataPath + "/" + DUISettings.Instance.UIRootFolder + "/"; } }
-        public DUIScreen screen { get { return (DUIScreen) target; } }
-
-        public override void OnInspectorGUI()
-        {
-            base.OnInspectorGUI();
-            if (screen.allowUpdatingElements && GUILayout.Button("Update Elements Bindings"))
-            {
-                UpdateElementsBindings(screen);
-            }
-            if (screen.allowUpdatingElements && GUILayout.Button("Delete Script and References"))
-            {
-                if(EditorUtility.DisplayDialog("Warning", "Are you sure you want to delete references and script file? It can cause compile time errors!", "Yes, delete", "Cancel"))
-                {
-                    DeleteScreen(screen);
-                }
-            }
-            if (GUILayout.Button("Bind Existing Elements"))
-            {
-                screen.SendMessage("BindElements", SendMessageOptions.DontRequireReceiver);
-            }
-        }
-
-        void OnEnable()
-        {
-            if (!File.Exists(uiScreensScriptsPath))
-                SaveUIScreenScript(CreateUIScreensClass().ToString());
-        }
-
-
+    class DynamicUICodeFactory : Editor
+    {
         [MenuItem("Dynamic UI/Create DUI Script")]
         static void CreateDynamicUIScript()
         {
@@ -80,6 +47,44 @@ namespace DynamicUI
             },
             new ConfirmationTool.Label("Class Name", "DUINewScript"));
         }
+    }
+
+  //  [CustomEditor(typeof(DUIScreen), true)]
+  //  public class DUIScreenEditor : Editor
+ //   {
+        /*
+        static string uiScreensScriptsPath { get { return scriptsFolder + "Views.cs"; } }
+        static string scriptsFolder { get { return Application.dataPath + "/" + DUISettings.Instance.UIRootFolder + "/"; } }
+        public DUIScreen screen { get { return (DUIScreen) target; } }
+
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+            if (screen.allowUpdatingElements && GUILayout.Button("Update Elements Bindings"))
+            {
+                UpdateElementsBindings(screen);
+            }
+            if (screen.allowUpdatingElements && GUILayout.Button("Delete Script and References"))
+            {
+                if(EditorUtility.DisplayDialog("Warning", "Are you sure you want to delete references and script file? It can cause compile time errors!", "Yes, delete", "Cancel"))
+                {
+                    DeleteScreen(screen);
+                }
+            }
+            if (GUILayout.Button("Bind Existing Elements"))
+            {
+                screen.SendMessage("BindElements", SendMessageOptions.DontRequireReceiver);
+            }
+        }
+
+        void OnEnable()
+        {
+            if (!File.Exists(uiScreensScriptsPath))
+                SaveUIScreenScript(CreateUIScreensClass().ToString());
+        }
+
+
+        
 
     //    [MenuItem("Dynamic UI/Create MVC View Container")]
         public static void CreateUIManager()

@@ -82,7 +82,7 @@ namespace DynamicUI
 
         public virtual void OnItemSetUp(object holder)
         {
-            if (onHolderClicked != null)
+            if (onItemSetUp != null)
                 onItemSetUp(holder as ItemHolder);
         }
 

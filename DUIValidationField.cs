@@ -30,6 +30,12 @@ namespace DynamicUI
             }
         }
 
+        void OnEnable()
+        {
+            if (!m_initialized) return;
+            Clear();
+        }
+
         public override void Init(DUICanvas canvas)
         {
             base.Init(canvas);
